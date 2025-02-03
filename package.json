@@ -68,7 +68,9 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
     "@types/markdown-draft-js": "^2.2.7",
+    "@types/nodemailer": "^6.4.17",
     "@types/react-draft-wysiwyg": "^1.13.8",
     "@types/toastify-js": "^1.12.3",
     "eslint-config-prettier": "^10.0.1",

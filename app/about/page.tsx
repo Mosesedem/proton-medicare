@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { motion } from 'framer-motion';
+import React from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { motion } from "framer-motion";
 
 const fadeInUpVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 }
+  visible: { opacity: 1, y: 0 },
 };
 
 export default function AboutPage() {
@@ -16,72 +16,75 @@ export default function AboutPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <section className="relative h-[70vh] flex items-center justify-center overflow-hidden">
+      <section className="relative flex h-[70vh] items-center justify-center overflow-hidden">
         <div
           className="absolute inset-0 z-0"
           style={{
-            backgroundImage: 'url(https://cdn.iconscout.com/strapi/Usecase_2_d4184d6646.png)',
-            backgroundPosition: 'center',
-            backgroundSize: 'cover',
-            filter: 'brightness(0.7)'
+            backgroundImage:
+              "url(https://cdn.iconscout.com/strapi/Usecase_2_d4184d6646.png)",
+            backgroundPosition: "center",
+            backgroundSize: "cover",
+            filter: "brightness(0.7)",
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background z-10" />
+        <div className="absolute inset-0 z-10 bg-gradient-to-b from-transparent to-background" />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="relative z-20 text-center px-4"
+          className="relative z-20 px-4 text-center"
         >
-          <span className="inline-block px-3 py-1 text-sm font-medium bg-white/10 backdrop-blur-md rounded-full text-white mb-6">
+          <span className="mb-6 inline-block rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur-md">
             Established 2010
           </span>
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
+          <h1 className="mb-6 text-5xl font-bold text-white md:text-7xl">
             Proton Medicare
           </h1>
-          <p className="text-xl md:text-2xl text-white/90 max-w-2xl mx-auto">
+          <p className="mx-auto max-w-2xl text-xl text-white/90 md:text-2xl">
             Revolutionizing healthcare accessibility for seniors across America
           </p>
         </motion.div>
       </section>
 
-      <section className="py-24 px-4">
-        <div className="container max-w-6xl mx-auto">
+      <section className="px-4 py-24">
+        <div className="container mx-auto max-w-6xl">
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
             variants={fadeInUpVariants}
-            className="text-center mb-16"
+            className="mb-16 text-center"
           >
-            <span className="px-3 py-1 text-sm font-medium bg-accent/10 rounded-full text-accent-foreground mb-6 inline-block">
+            <span className="mb-6 inline-block rounded-full bg-accent/10 px-3 py-1 text-sm font-medium text-accent-foreground">
               Our Mission
             </span>
-            <h2 className="text-4xl font-bold mb-6">Simplifying Healthcare</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              We believe in making healthcare accessible and understandable for everyone.
-              Our commitment drives us to innovate and improve continuously.
+            <h2 className="mb-6 text-4xl font-bold">Simplifying Healthcare</h2>
+            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              We believe in making healthcare accessible and understandable for
+              everyone. Our commitment drives us to innovate and improve
+              continuously.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid gap-8 md:grid-cols-3">
             {[
               {
-                title: 'Transparency',
-                description: 'Clear communication and honest relationships with our members',
-                icon: '✨'
+                title: "Transparency",
+                description:
+                  "Clear communication and honest relationships with our members",
+                icon: "✨",
               },
               {
-                title: 'Innovation',
-                description: 'Continuously improving our healthcare solutions',
-                icon: '🔬'
+                title: "Innovation",
+                description: "Continuously improving our healthcare solutions",
+                icon: "🔬",
               },
               {
-                title: 'Support',
-                description: '24/7 dedicated assistance for all our members',
-                icon: '🤝'
-              }
+                title: "Support",
+                description: "24/7 dedicated assistance for all our members",
+                icon: "🤝",
+              },
             ].map((item, index) => (
               <motion.div
                 key={item.title}
@@ -91,10 +94,10 @@ export default function AboutPage() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 variants={fadeInUpVariants}
               >
-                <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+                <Card className="group relative overflow-hidden transition-shadow duration-300 hover:shadow-lg">
                   <CardContent className="p-6">
-                    <div className="text-4xl mb-4">{item.icon}</div>
-                    <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
+                    <div className="mb-4 text-4xl">{item.icon}</div>
+                    <h3 className="mb-2 text-xl font-semibold">{item.title}</h3>
                     <p className="text-muted-foreground">{item.description}</p>
                   </CardContent>
                 </Card>
@@ -104,29 +107,31 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="py-24 bg-accent/5">
-        <div className="container max-w-6xl mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+      <section className="bg-accent/5 py-24">
+        <div className="container mx-auto max-w-6xl px-4">
+          <div className="grid items-center gap-12 md:grid-cols-2">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
-              <span className="px-3 py-1 text-sm font-medium bg-accent/10 rounded-full text-accent-foreground mb-6 inline-block">
+              <span className="mb-6 inline-block rounded-full bg-accent/10 px-3 py-1 text-sm font-medium text-accent-foreground">
                 Our Story
               </span>
-              <h2 className="text-4xl font-bold mb-6">A Decade of Excellence</h2>
-              <p className="text-lg text-muted-foreground mb-6">
-                Founded in 2010, Proton Medicare began with a simple idea: make Medicare
-                accessible and understandable for everyone. Over the years, we have grown
-                from a small startup to a trusted healthcare partner for thousands of
-                seniors across the country.
+              <h2 className="mb-6 text-4xl font-bold">
+                A Decade of Excellence
+              </h2>
+              <p className="mb-6 text-lg text-muted-foreground">
+                Founded in 2010, Proton Medicare began with a simple idea: make
+                Medicare accessible and understandable for everyone. Over the
+                years, we have grown from a small startup to a trusted
+                healthcare partner for thousands of seniors across the country.
               </p>
               <p className="text-lg text-muted-foreground">
-                Our team of dedicated professionals works tirelessly to ensure that our
-                members receive the best possible care and support, making the
-                most trusted names in Medicare services.
+                Our team of dedicated professionals works tirelessly to ensure
+                that our members receive the best possible care and support,
+                making the most trusted names in Medicare services.
               </p>
             </motion.div>
             <motion.div
@@ -139,9 +144,10 @@ export default function AboutPage() {
               <div
                 className="absolute inset-0 rounded-2xl"
                 style={{
-                  backgroundImage: 'url(https://cdn.iconscout.com/strapi/Usecase_2_d4184d6646.png)',
-                  backgroundPosition: 'center',
-                  backgroundSize: 'cover'
+                  backgroundImage:
+                    "url(https://cdn.iconscout.com/strapi/Usecase_2_d4184d6646.png)",
+                  backgroundPosition: "center",
+                  backgroundSize: "cover",
                 }}
               />
             </motion.div>
