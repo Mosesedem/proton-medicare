@@ -9,9 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.10.6",
     "@heroicons/react": "^1.0.6",
     "@hookform/resolvers": "^3.10.0",
     "@paystack/inline-js": "^2.22.1",
+    "@prisma/client": "^6.3.0",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.3",
     "@radix-ui/react-avatar": "^1.1.2",
@@ -33,23 +35,29 @@
     "@types/node": "22.10.2",
     "@types/react": "19.0.1",
     "@types/react-dom": "19.0.2",
+    "@vercel/blob": "^0.27.1",
     "autoprefixer": "10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.5.1",
     "eslint": "9.17.0",
     "eslint-config-next": "15.1.0",
     "framer-motion": "^11.15.0",
     "lucide-react": "^0.468.0",
+    "markdown-draft-js": "^2.4.0",
+    "nanoid": "^5.0.9",
     "next": "^15.1.6",
     "next-themes": "^0.4.4",
     "postcss": "8.4.49",
-    "prisma": "^6.1.0",
+    "prisma": "^6.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-draft-wysiwyg": "^1.15.0",
     "react-hook-form": "^7.54.2",
     "react-hot-toast": "^2.4.1",
     "react-intersection-observer": "^9.13.1",
+    "react-markdown": "^9.0.3",
     "react-router-dom": "^6.28.1",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
@@ -60,6 +68,11 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@types/toastify-js": "^1.12.3"
+    "@types/markdown-draft-js": "^2.2.7",
+    "@types/react-draft-wysiwyg": "^1.13.8",
+    "@types/toastify-js": "^1.12.3",
+    "eslint-config-prettier": "^10.0.1",
+    "prettier": "^3.4.2",
+    "prettier-plugin-tailwindcss": "^0.6.11"
   }
 }

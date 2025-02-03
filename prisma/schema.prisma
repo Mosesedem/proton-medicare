@@ -5,10 +5,39 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model Users {
+  id                     Int       @id @default(autoincrement())
+  email                  String    @unique
+  firstName              String?
+  lastName               String?
+  phone                  String?
+  phoneNumber            String?
+  dateOfBirth            DateTime?
+  password               String
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  verificationCode       String?
+  resetCode              String?
+  imageUrl               String?
+  verificationCodeExpiry DateTime?
+  resetCodeExpiry        DateTime?
+  verificationToken      String?
+  tokenExpiry            DateTime?
+  isVerified             Boolean   @default(false)
+  verificationPin        String?
+  resetPin               String?
+  resetPinExpiry         DateTime?
+  resetAttempts          Int       @default(0)
+  passwordUpdtaedAt      DateTime?
+
+  @@map("users")
 }
