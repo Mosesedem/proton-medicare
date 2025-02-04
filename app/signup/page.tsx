@@ -40,8 +40,12 @@ export default function SignUpPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
   const router = useRouter();
+  const [firstNameError, setFirstNameError] = useState("");
+  const [lastNameError, setLastNameError] = useState("");
+  const [phoneNumberError, setPhoneNumberError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const { setConfig } = useLayoutConfig();
 
   useEffect(() => {
@@ -111,74 +115,69 @@ export default function SignUpPage() {
 
     return true;
   };
+  const phoneRegex = /^\+?[0-9]\d{1,14}$/;
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) return;
-
     setIsLoading(true);
 
-    // Create FormData object for submission
-    const submitData = new FormData();
-    Object.entries(formData).forEach(([key, value]) => {
-      if (key !== "confirmPassword") {
-        // Don't send confirmPassword to server
-        submitData.append(key, value);
-      }
+    setFirstNameError("");
+    setLastNameError("");
+    setPhoneNumberError("");
+    setEmailError("");
+    setPasswordError("");
+
+    if (!formData.firstName) {
+      setFirstNameError("First name is required");
+      setIsLoading(false);
+      return false;
+    }
+    if (!formData.lastName) {
+      setLastNameError("Last name is required");
+      setIsLoading(false);
+      return false;
+    }
+    if (!phoneRegex.test(formData.phoneNumber)) {
+      toast.error("Please enter a valid phone number");
+      setIsLoading(false);
+      return false;
+    }
+    if (!formData.email) {
+      setEmailError("Email is required");
+      setIsLoading(false);
+      return false;
+    }
+    if (!passwordRegex.test(formData.password)) {
+      setPasswordError(
+        "Password must be at least 6 characters long and include both letters and numbers.",
+      );
+      setIsLoading(false);
+      return false;
+    }
+
+    const response = await fetch("/api/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: formData.phoneNumber,
+        email: formData.email,
+        password: formData.password,
+      }),
     });
 
-    try {
-      const response = await fetch("./api/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phoneNumber: formData.phoneNumber,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast.success(data.message);
-        // Start session
-        sessionStorage.setItem(
-          "user",
-          JSON.stringify({
-            email: formData.email,
-            firstName: formData.firstName,
-            isVerified: false,
-          }),
-        );
-
-        setTimeout(() => {
-          router.push(data.redirect || "/verify-email");
-        }, 2000);
-      } else {
-        toast.error(data.message || "Registration failed. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      if (error instanceof Error) {
-        if (error.message === "Server returned non-JSON response") {
-          toast.error("Server error. Please try again later.");
-        } else {
-          toast.error(
-            "Connection error. Please check your internet connection.",
-          );
-        }
-      } else {
-        toast.error("An unexpected error occurred. Please try again.");
-      }
-    } finally {
-      setIsLoading(false);
+    if (response.ok) {
+      toast.success("Sign up successful!");
+      router.push("/signin");
+    } else {
+      const errorData = await response.json();
+      toast.error(errorData.message || "Sign up failed");
     }
+    setIsLoading(false);
   };
 
   const togglePasswordVisibility = (field: "password" | "confirmPassword") => {
