@@ -15,7 +15,7 @@ datasource db {
 }
 
 model Users {
-  id                     Int       @id @default(autoincrement())
+  id                     String    @id @default(cuid())
   email                  String    @unique
   firstName              String?
   lastName               String?
@@ -30,7 +30,7 @@ model Users {
   imageUrl               String?
   verificationCodeExpiry DateTime?
   resetCodeExpiry        DateTime?
-  verificationToken      String?
+  verificationToken      String?   @unique
   tokenExpiry            DateTime?
   isVerified             Boolean   @default(false)
   verificationPin        String?

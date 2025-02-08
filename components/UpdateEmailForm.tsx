@@ -1,57 +1,66 @@
-"use client"
+//components/UpdateEmailForm.tsx
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Loader2 } from "lucide-react"
-import { toast } from "sonner"
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface UpdateEmailFormProps {
-  currentEmail: string
-  onBack: () => void
-  onEmailUpdated: (newEmail: string) => void
+  currentEmail: string;
+  onBack: () => void;
+  onEmailUpdated: (newEmail: string) => void;
 }
 
-export function UpdateEmailForm({ currentEmail, onBack, onEmailUpdated }: UpdateEmailFormProps) {
-  const [email, setEmail] = useState(currentEmail)
-  const [password, setPassword] = useState("")
-  const [isUpdating, setIsUpdating] = useState(false)
+export function UpdateEmailForm({
+  currentEmail,
+  onBack,
+  onEmailUpdated,
+}: UpdateEmailFormProps) {
+  const [email, setEmail] = useState(currentEmail);
+  const [password, setPassword] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const updateEmail = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!email.trim() || !password.trim()) {
-      toast.error("Please fill in all fields")
-      return
+      toast.error("Please fill in all fields");
+      return;
     }
 
-    setIsUpdating(true)
+    setIsUpdating(true);
     try {
-      const response = await fetch("https://v2.protonmedicare.com/api/verify-email.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          action: 'update-email',
-          new_email: email,
-          password
-        })
-      })
-      
-      const data = await response.json()
+      const response = await fetch(
+        "https://v2.protonmedicare.com/api/verify-email.php",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "update-email",
+            new_email: email,
+            password,
+          }),
+        },
+      );
+
+      const data = await response.json();
       if (data.success) {
-        toast.success("Email updated! Please verify your new email.")
-        sessionStorage.setItem("unverifiedEmail", email)
-        onEmailUpdated(email)
+        toast.success("Email updated! Please verify your new email.");
+        sessionStorage.setItem("unverifiedEmail", email);
+        onEmailUpdated(email);
       } else {
-        toast.error(data.message || "Failed to update email")
+        toast.error(data.message || "Failed to update email");
       }
     } catch (error) {
-      console.error("Email update error:", error)
-      toast.error("An error occurred while updating email")
+      console.error("Email update error:", error);
+      toast.error("An error occurred while updating email");
     } finally {
-      setIsUpdating(false)
+      setIsUpdating(false);
     }
-  }
+  };
 
   return (
     <form onSubmit={updateEmail} className="space-y-6">
@@ -66,7 +75,7 @@ export function UpdateEmailForm({ currentEmail, onBack, onEmailUpdated }: Update
             placeholder="Enter new email address"
           />
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="password">Confirm Password</Label>
           <Input
@@ -78,17 +87,17 @@ export function UpdateEmailForm({ currentEmail, onBack, onEmailUpdated }: Update
           />
         </div>
       </div>
-      
+
       <div className="space-y-4">
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full bg-teal-600 hover:bg-teal-700"
           disabled={isUpdating}
         >
-          {isUpdating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+          {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Update Email
         </Button>
-        
+
         <Button
           type="button"
           variant="ghost"
@@ -99,5 +108,5 @@ export function UpdateEmailForm({ currentEmail, onBack, onEmailUpdated }: Update
         </Button>
       </div>
     </form>
-  )
+  );
 }

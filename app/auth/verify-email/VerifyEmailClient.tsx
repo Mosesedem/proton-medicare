@@ -1,34 +1,39 @@
-"use client"
+//app/auth/verify-email/VerifyEmailClient.tsx
 
-import { useSearchParams } from "next/navigation"
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { EmailVerificationForm } from "@/components/EmailVerificationForm"
-import { PinVerificationForm } from "@/components/PinVerificationForm"
-import { UpdateEmailForm } from "@/components/UpdateEmailForm"
+"use client";
 
-type VerificationStep = "initial" | "pin" | "update"
+import { useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmailVerificationForm } from "@/components/EmailVerificationForm";
+import { PinVerificationForm } from "@/components/PinVerificationForm";
+import { UpdateEmailForm } from "@/components/UpdateEmailForm";
+
+type VerificationStep = "initial" | "pin" | "update";
 
 export default function VerifyEmailClient() {
-  const searchParams = useSearchParams()
-  const [email, setEmail] = useState("")
-  const [currentStep, setCurrentStep] = useState<VerificationStep>("initial")
+  const searchParams = useSearchParams();
+  const [email, setEmail] = useState("");
+  const [currentStep, setCurrentStep] = useState<VerificationStep>("initial");
 
   useEffect(() => {
-    const initialEmail = searchParams.get("email") || sessionStorage.getItem("unverifiedEmail") || ""
-    setEmail(initialEmail)
-  }, [searchParams])
+    const initialEmail =
+      searchParams.get("email") ||
+      sessionStorage.getItem("unverifiedEmail") ||
+      "";
+    setEmail(initialEmail);
+  }, [searchParams]);
 
   const handleEmailUpdated = (newEmail: string) => {
-    setEmail(newEmail)
-    setCurrentStep("initial")
-  }
+    setEmail(newEmail);
+    setCurrentStep("initial");
+  };
 
   return (
-    <div className="container mx-auto flex items-center justify-center min-h-screen p-4">
+    <div className="container mx-auto flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">
+          <CardTitle className="text-center text-2xl">
             {currentStep === "initial" && "Email Verification"}
             {currentStep === "pin" && "Enter Verification PIN"}
             {currentStep === "update" && "Update Email Address"}
@@ -43,7 +48,12 @@ export default function VerifyEmailClient() {
             />
           )}
 
-          {currentStep === "pin" && <PinVerificationForm email={email} onBack={() => setCurrentStep("initial")} />}
+          {currentStep === "pin" && (
+            <PinVerificationForm
+              email={email}
+              onBack={() => setCurrentStep("initial")}
+            />
+          )}
 
           {currentStep === "update" && (
             <UpdateEmailForm
@@ -55,6 +65,5 @@ export default function VerifyEmailClient() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
-
