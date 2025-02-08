@@ -1,5 +1,3 @@
-//components/UpdateEmailForm.tsx
-
 "use client";
 
 import { useState } from "react";
@@ -8,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useFormState } from "react-dom";
+import { updateEmail } from "@/app/api/verifyemail/route";
 
 interface UpdateEmailFormProps {
   currentEmail: string;
@@ -24,7 +24,9 @@ export function UpdateEmailForm({
   const [password, setPassword] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const updateEmail = async (e: React.FormEvent) => {
+  const [state, formAction] = useFormState(updateEmail, null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
       toast.error("Please fill in all fields");
@@ -32,27 +34,20 @@ export function UpdateEmailForm({
     }
 
     setIsUpdating(true);
-    try {
-      const response = await fetch(
-        "https://v2.protonmedicare.com/api/verify-email.php",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "update-email",
-            new_email: email,
-            password,
-          }),
-        },
-      );
 
-      const data = await response.json();
-      if (data.success) {
+    try {
+      const formData = new FormData();
+      formData.append("email", email);
+      formData.append("password", password);
+
+      const result = await formAction(formData);
+
+      if (result?.success) {
         toast.success("Email updated! Please verify your new email.");
         sessionStorage.setItem("unverifiedEmail", email);
         onEmailUpdated(email);
       } else {
-        toast.error(data.message || "Failed to update email");
+        toast.error(result?.message || "Failed to update email");
       }
     } catch (error) {
       console.error("Email update error:", error);
@@ -63,7 +58,7 @@ export function UpdateEmailForm({
   };
 
   return (
-    <form onSubmit={updateEmail} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">New Email Address</Label>
@@ -73,6 +68,7 @@ export function UpdateEmailForm({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter new email address"
+            required
           />
         </div>
 
@@ -84,6 +80,7 @@ export function UpdateEmailForm({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your password"
+            required
           />
         </div>
       </div>

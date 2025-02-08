@@ -2,10 +2,12 @@
 
 "use server";
 
+import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { Resend } from "resend";
 import { z } from "zod";
 import { randomBytes } from "crypto";
+import { hash, compare } from "bcryptjs";
 import { cookies } from "next/headers";
 
 const prisma = new PrismaClient();
@@ -103,7 +105,7 @@ async function sendVerificationEmail(
 
   try {
     const { data, error } = await resend.emails.send({
-      from: "ProtonMedicare <noreply@protonmedicare.com>",
+      from: "Proton Medicare <hq@hq.protonmedicare.com>",
       to: email,
       subject: "✨ Verify Your ProtonMedicare Account",
       html: getEmailTemplate(firstName, verificationLink, pin),
@@ -121,17 +123,48 @@ async function sendVerificationEmail(
   }
 }
 
-// Server actions
 export async function updateEmail(prevState: any, formData: FormData) {
+  const schema = z.object({
+    email: z.string().email(),
+    password: z.string().min(6),
+  });
+
+  const parse = schema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+
+  if (!parse.success) {
+    return { success: false, message: "Invalid email or password format" };
+  }
+
   try {
     const cookieStore = await cookies();
     const userId = cookieStore.get("userId")?.value;
+
     if (!userId) {
       return { success: false, message: "Not authenticated" };
     }
 
-    const newEmail = formData.get("email") as string;
-    const validatedData = emailSchema.parse({ email: newEmail });
+    const { email, password } = parse.data;
+
+    // Get user details
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return { success: false, message: "User not found" };
+    }
+
+    // Verify password
+    const passwordMatch = await compare(password, user.password);
+    if (!passwordMatch) {
+      return { success: false, message: "Incorrect password" };
+    }
+
+    // Validate email format
+    const validatedData = emailSchema.parse({ email });
 
     // Check if email exists
     const existingUser = await prisma.users.findFirst({
@@ -145,19 +178,10 @@ export async function updateEmail(prevState: any, formData: FormData) {
       return { success: false, message: "Email address already in use" };
     }
 
-    // Get user details
-    const user = await prisma.users.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      return { success: false, message: "User not found" };
-    }
-
     // Generate verification details
     const verificationDetails = generateVerificationDetails();
 
-    // Update user
+    // Update user email
     await prisma.users.update({
       where: { id: userId },
       data: {
@@ -202,27 +226,54 @@ export async function resendVerificationCode(
   prevState: any,
   formData: FormData,
 ) {
+  const schema = z.object({
+    email: z.string().email(),
+  });
+
+  const parse = schema.safeParse({
+    email: formData.get("email"),
+  });
+
+  if (!parse.success) {
+    console.log("Email validation failed:", parse.error);
+    return { success: false, message: "Invalid email format" };
+  }
+
   try {
     const email = formData.get("email") as string;
-    const validatedData = emailSchema.parse({ email });
+    console.log("Attempting to resend verification for email:", email);
 
-    // Get user details
+    const validatedData = emailSchema.parse({ email });
+    const normalizedEmail = validatedData.email.toLowerCase();
+
+    console.log("Looking for user with email:", normalizedEmail);
+
+    // Get user details with more detailed query
     const user = await prisma.users.findFirst({
       where: {
-        email: validatedData.email.toLowerCase(),
-        isVerified: false,
+        email: normalizedEmail,
       },
     });
+
+    console.log("Found user:", user);
 
     if (!user) {
       return {
         success: false,
-        message: "No pending verification found for this email",
+        message: "No user found with this email address",
+      };
+    }
+
+    if (user.isVerified) {
+      return {
+        success: false,
+        message: "This email is already verified",
       };
     }
 
     // Generate new verification details
     const verificationDetails = generateVerificationDetails();
+    console.log("Generated new verification details");
 
     // Update user
     await prisma.users.update({
@@ -234,13 +285,17 @@ export async function resendVerificationCode(
       },
     });
 
+    console.log("Updated user with new verification details");
+
     // Send verification email
     const emailSent = await sendVerificationEmail(
-      validatedData.email,
+      normalizedEmail,
       user.firstName ?? "",
       verificationDetails.token,
       verificationDetails.pin,
     );
+
+    console.log("Email send attempt result:", emailSent);
 
     if (!emailSent) {
       return { success: false, message: "Failed to send verification email" };
@@ -260,6 +315,20 @@ export async function resendVerificationCode(
 }
 
 export async function verifyEmail(prevState: any, formData: FormData) {
+  const schema = z.object({
+    email: z.string().email(),
+    pin: z.string().length(6),
+  });
+
+  const parse = schema.safeParse({
+    email: formData.get("email"),
+    pin: formData.get("pin"),
+  });
+
+  if (!parse.success) {
+    return { success: false, message: "Invalid input" };
+  }
+
   try {
     const email = formData.get("email") as string;
     const pin = formData.get("pin") as string;

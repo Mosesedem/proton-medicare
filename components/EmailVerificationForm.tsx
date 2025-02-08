@@ -1,11 +1,12 @@
-// /components/EmailVerificationForm.tsx
-
+// components/EmailVerificationForm.tsx
 "use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { resendVerificationCode } from "@/app/api/verifyemail/route";
+import { useFormState } from "react-dom";
 
 interface EmailVerificationFormProps {
   email: string;
@@ -18,35 +19,19 @@ export function EmailVerificationForm({
   onPinRequest,
   onEditEmail,
 }: EmailVerificationFormProps) {
-  const [isResending, setIsResending] = useState(false);
+  const [state, formAction] = useFormState(resendVerificationCode, null);
+  const [isPending, setIsPending] = useState(false);
 
-  const resendVerification = async () => {
-    setIsResending(true);
+  const handleResend = async (formData: FormData) => {
+    setIsPending(true);
     try {
-      const response = await fetch(
-        "https://v2.protonmedicare.com/api/verify-email.php",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "resend-code",
-            email,
-          }),
-        },
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        toast.success("Verification email sent! Please check your inbox.");
-        onPinRequest();
-      } else {
-        toast.error(data.message || "Failed to resend verification email");
-      }
+      formAction(formData);
+      toast.success("Verification email sent! Please check your inbox.");
+      onPinRequest();
     } catch (error) {
-      console.error("Resend error:", error);
-      toast.error("An error occurred while resending verification");
+      toast.error("Failed to resend verification email");
     } finally {
-      setIsResending(false);
+      setIsPending(false);
     }
   };
 
@@ -58,16 +43,19 @@ export function EmailVerificationForm({
       </div>
 
       <div className="space-y-4">
-        <Button
-          onClick={resendVerification}
-          variant="default"
-          className="w-full bg-teal-600 hover:bg-teal-700"
-          disabled={isResending}
-        >
-          {isResending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          <Mail className="mr-2 h-4 w-4" />
-          Resend Verification Email
-        </Button>
+        <form action={handleResend}>
+          <input type="hidden" name="email" value={email} />
+          <Button
+            type="submit"
+            variant="default"
+            className="w-full bg-teal-600 hover:bg-teal-700"
+            disabled={isPending}
+          >
+            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Mail className="mr-2 h-4 w-4" />
+            Resend Verification Email
+          </Button>
+        </form>
 
         <Button onClick={onEditEmail} variant="outline" className="w-full">
           Edit Email Address

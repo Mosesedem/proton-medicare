@@ -1,5 +1,3 @@
-//components/pinverificationform.tsx
-
 "use client";
 
 import { useState } from "react";
@@ -9,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useActionState } from "react";
+import { verifyEmail } from "@/app/api/verifyemail/route";
 
 interface PinVerificationFormProps {
   email: string;
@@ -20,49 +20,30 @@ export function PinVerificationForm({
   onBack,
 }: PinVerificationFormProps) {
   const [pin, setPin] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [state, formAction] = useActionState(verifyEmail, null);
+  const [isPending, setIsPending] = useState(false);
   const router = useRouter();
 
-  const verifyPin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pin.trim()) {
-      toast.error("Please enter the verification PIN");
-      return;
-    }
-
-    setIsLoading(true);
+  const handleVerify = async (formData: FormData) => {
+    setIsPending(true);
     try {
-      const response = await fetch(
-        "https://v2.protonmedicare.com/api/verify-email.php",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "verify",
-            pin,
-            email,
-          }),
-        },
-      );
-
-      const data = await response.json();
-      if (data.success) {
+      const result = await formAction(formData);
+      if (result?.success) {
         toast.success("Email verified successfully!");
         sessionStorage.removeItem("unverifiedEmail");
         setTimeout(() => router.push("/signin"), 2000);
       } else {
-        toast.error(data.message || "Verification failed");
+        toast.error(result?.message || "Verification failed");
       }
     } catch (error) {
-      console.error("Verification error:", error);
       toast.error("An error occurred during verification");
     } finally {
-      setIsLoading(false);
+      setIsPending(false);
     }
   };
 
   return (
-    <form onSubmit={verifyPin} className="space-y-6">
+    <form action={handleVerify} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="pin">Enter Verification PIN</Label>
         <Input
@@ -80,12 +61,11 @@ export function PinVerificationForm({
         <Button
           type="submit"
           className="w-full bg-teal-600 hover:bg-teal-700"
-          disabled={isLoading}
+          disabled={isPending}
         >
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Verify PIN
         </Button>
-
         <Button
           type="button"
           variant="ghost"
