@@ -26,7 +26,7 @@ export default function VerifyEmailClient() {
 
   const handleEmailUpdated = (newEmail: string) => {
     setEmail(newEmail);
-    setCurrentStep("initial");
+    setCurrentStep("pin");
   };
 
   return (
@@ -51,7 +51,10 @@ export default function VerifyEmailClient() {
           {currentStep === "pin" && (
             <PinVerificationForm
               email={email}
-              onVerificationComplete={() => setCurrentStep("initial")}
+              onBack={() => setCurrentStep("initial")}
+              onVerificationComplete={function (): void {
+                throw new Error("Function not implemented.");
+              }}
             />
           )}
 

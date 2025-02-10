@@ -4,27 +4,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 interface PinVerificationFormProps {
   email: string;
+  onVerificationComplete: () => void;
   onBack: () => void;
-}
-
-// Define the expected response type
-interface VerificationResponse {
-  success: boolean;
-  message: string;
-  redirect?: string;
 }
 
 export function PinVerificationForm({
   email,
   onVerificationComplete,
-}: {
-  email: string;
-  onVerificationComplete: () => void;
-}) {
+  onBack,
+}: PinVerificationFormProps) {
   const [pin, setPin] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -65,34 +56,40 @@ export function PinVerificationForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="pin">Verification PIN</Label>
+        <Label htmlFor="pin">Enter Verification PIN</Label>
         <Input
           id="pin"
+          name="pin"
           type="text"
-          inputMode="numeric"
-          pattern="[0-9]{6}"
-          maxLength={6}
           value={pin}
           onChange={(e) => setPin(e.target.value)}
-          placeholder="Enter 6-digit PIN"
+          placeholder="Enter the PIN from your email"
+          className="text-center text-lg tracking-wider"
+          maxLength={6}
           required
         />
       </div>
 
-      <Button
-        type="submit"
-        className="w-full bg-teal-600 hover:bg-teal-700"
-        disabled={isVerifying || pin.length !== 6}
-      >
-        {isVerifying ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Verifying...
-          </>
-        ) : (
-          "Verify Email"
-        )}
-      </Button>
+      <div className="space-y-4">
+        <Button
+          type="submit"
+          className="w-full bg-teal-600 hover:bg-teal-700"
+          disabled={isVerifying}
+        >
+          {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Verify PIN
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full"
+          onClick={onBack}
+        >
+          Back
+        </Button>
+      </div>
     </form>
   );
 }
+
+export default PinVerificationForm;
