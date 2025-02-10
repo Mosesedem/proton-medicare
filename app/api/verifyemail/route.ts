@@ -54,13 +54,60 @@ function getEmailTemplate(
   verificationPin: string,
 ): string {
   return `
-    <div>
-      <h1>Hello ${firstName}!</h1>
-      <p>Please verify your email address by clicking the link below:</p>
-      <p><a href="${verificationLink}">Verify Email</a></p>
-      <p>Or enter this verification PIN: ${verificationPin}</p>
-      <p>This link and PIN will expire in 24 hours.</p>
-    </div>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Verify Your Email</title>
+        <style>
+            body { font-family: -apple-system, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #00897b; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background-color: #ffffff; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+            .button { display: inline-block; padding: 12px 24px; background-color: #00897b; color: white; text-decoration: none; 
+                     border-radius: 5px; margin: 20px 0; font-weight: bold; }
+            .pin-box { font-size: 20px; font-weight: bold; color: #00897b; text-align: center; background-color: #f9f9f9;
+                      padding: 10px 15px; border: 1px dashed #00897b; border-radius: 5px; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 14px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>Welcome to ProtonMedicare! ✨</h1>
+            </div>
+            <div class="content">
+                <h2>Hey 
+${firstName}
+! 👋</h2>
+                <p>We're thrilled to have you join our community! 🎉</p>
+                <p>Please verify your email address to start using your account. You can do this in two ways:</p>
+                <div style="text-align: center;">
+                    <a href="
+${verificationLink}
+" class="button">
+                        Verify My Email 🚀
+                    </a>
+                </div>
+                <p>or</p>
+                <p>Use this PIN to verify your email address:</p>
+                <div class="pin-box">
+                    
+${verificationPin}
+
+                </div>
+                <p>This link and PIN will expire in 24 hours ⏰</p>
+                <p>If you didn't create an account, you can safely ignore this email 💌</p>
+                <div class="footer">
+                    <p>Need help? Reply to this email or contact our support team 💪</p>
+                    <p>© 
+${new Date().getFullYear()}
+ ProtonMedicare. All rights reserved. 🏥</p>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
   `;
 }
 
@@ -76,7 +123,7 @@ async function sendVerificationEmail(
     return false;
   }
 
-  const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}/auth/verify-email?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+  const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}/verify?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
 
   try {
     const { data, error } = await resend.emails.send({
