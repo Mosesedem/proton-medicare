@@ -39,37 +39,91 @@ function generateVerificationToken(): { token: string; expires: Date } {
 // Email template
 function getEmailTemplate(firstName: string, verificationLink: string) {
   return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Verify Your Email</title>
-    </head>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background-color: #f9f9f9; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-            <h1 style="color: #2c3e50; margin-bottom: 20px;">Welcome to ProtonMedicare! ✨</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email ✨</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #00897b;
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .content {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #00897b;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .emoji {
+            font-size: 24px;
+            margin: 0 5px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome to ProtonMedicare! ✨</h1>
+        </div>
+        <div class="content">
+            <h2 style="color: #2c3e50;">Hey ${firstName}! 👋</h2>
+            <p>We're so excited to have you join our community! 🎉</p>
+            <p>Just one more step to get started - please verify your email address by clicking the button below:</p>
             
-            <div style="background-color: white; padding: 20px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                <h2 style="color: #2c3e50;">Hey ${firstName}! 👋</h2>
-                <p>Thanks for signing up! Please verify your email address by clicking the button below:</p>
-                
                 <div style="text-align: center; margin: 30px 0;">
                     <a href="${verificationLink}" 
-                       style="background-color: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                       style="background-color: #12d8e0; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
                         Verify My Email
                     </a>
                 </div>
-                
-                <p style="margin-top: 20px; color: #666;">This link will expire in 24 hours.</p>
-                <p style="color: #666;">If you didn't create an account, you can safely ignore this email.</p>
-            </div>
             
+            <p>This link will expire in 24 hours ⏰</p>
+            
+            <p>If you didn't create an account, you can safely ignore this email 💌</p>
+            
+            <div class="footer">
+                <p>Need help? Reply to this email or contact our support team 💪</p>
             <div style="margin-top: 20px; text-align: center; color: #666; font-size: 14px;">
                 <p>© ${new Date().getFullYear()} ProtonMedicare. All rights reserved.</p>
             </div>
+            </div>
         </div>
-    </body>
-    </html>
+    </div>
+</body>
+</html>
   `;
 }
 
