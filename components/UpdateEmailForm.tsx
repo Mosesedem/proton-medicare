@@ -1,56 +1,50 @@
-"use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useFormState } from "react-dom";
-import { updateEmail } from "@/app/api/verifyemail/route";
-
-interface UpdateEmailFormProps {
-  currentEmail: string;
-  onBack: () => void;
-  onEmailUpdated: (newEmail: string) => void;
-}
+// import { updateEmail } from "@/app/api/verifyemail/route";
 
 export function UpdateEmailForm({
   currentEmail,
   onBack,
   onEmailUpdated,
-}: UpdateEmailFormProps) {
+}: {
+  currentEmail: string;
+  onBack: () => void;
+  onEmailUpdated: (newEmail: string) => void;
+}) {
   const [email, setEmail] = useState(currentEmail);
   const [password, setPassword] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const [state, formAction] = useFormState(updateEmail, null);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-
     setIsUpdating(true);
 
     try {
       const formData = new FormData();
+      formData.append("action", "updateEmail");
       formData.append("email", email);
       formData.append("password", password);
 
-      const result = await formAction(formData);
+      const response = await fetch("/api/verifyemail", {
+        method: "POST",
+        body: formData,
+      });
 
-      if (result?.success) {
+      const data = await response.json();
+
+      if (data.success) {
         toast.success("Email updated! Please verify your new email.");
         sessionStorage.setItem("unverifiedEmail", email);
         onEmailUpdated(email);
       } else {
-        toast.error(result?.message || "Failed to update email");
+        toast.error(data.message || "Failed to update email");
       }
     } catch (error) {
-      console.error("Email update error:", error);
       toast.error("An error occurred while updating email");
     } finally {
       setIsUpdating(false);
@@ -64,6 +58,7 @@ export function UpdateEmailForm({
           <Label htmlFor="email">New Email Address</Label>
           <Input
             id="email"
+            name="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -76,6 +71,7 @@ export function UpdateEmailForm({
           <Label htmlFor="password">Confirm Password</Label>
           <Input
             id="password"
+            name="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -91,8 +87,14 @@ export function UpdateEmailForm({
           className="w-full bg-teal-600 hover:bg-teal-700"
           disabled={isUpdating}
         >
-          {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Update Email
+          {isUpdating ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Updating...
+            </>
+          ) : (
+            "Update Email"
+          )}
         </Button>
 
         <Button
@@ -100,6 +102,7 @@ export function UpdateEmailForm({
           variant="ghost"
           className="w-full"
           onClick={onBack}
+          disabled={isUpdating}
         >
           Cancel
         </Button>

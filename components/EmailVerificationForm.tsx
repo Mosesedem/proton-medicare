@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { resendVerificationCode } from "@/app/api/verifyemail/route";
+// import { resendVerificationCode } from "@/app/api/verifyemail/route";
 import { useFormState } from "react-dom";
 
 interface EmailVerificationFormProps {
@@ -18,16 +18,35 @@ export function EmailVerificationForm({
   email,
   onPinRequest,
   onEditEmail,
-}: EmailVerificationFormProps) {
-  const [state, formAction] = useFormState(resendVerificationCode, null);
+}: {
+  email: string;
+  onPinRequest: () => void;
+  onEditEmail: () => void;
+}) {
   const [isPending, setIsPending] = useState(false);
 
-  const handleResend = async (formData: FormData) => {
+  const handleResend = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsPending(true);
+
     try {
-      formAction(formData);
-      toast.success("Verification email sent! Please check your inbox.");
-      onPinRequest();
+      const formData = new FormData();
+      formData.append("action", "resendVerification");
+      formData.append("email", email);
+
+      const response = await fetch("/api/verifyemail", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success("Verification email sent! Please check your inbox.");
+        onPinRequest();
+      } else {
+        toast.error(data.message || "Failed to send verification email");
+      }
     } catch (error) {
       toast.error("Failed to resend verification email");
     } finally {
@@ -43,8 +62,7 @@ export function EmailVerificationForm({
       </div>
 
       <div className="space-y-4">
-        <form action={handleResend}>
-          <input type="hidden" name="email" value={email} />
+        <form onSubmit={handleResend}>
           <Button
             type="submit"
             variant="default"

@@ -1,25 +1,17 @@
+// /api/verifyemail/route.ts
+
 "use server";
 
-import { type NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { Resend } from "resend";
 import { z } from "zod";
 import { randomBytes } from "crypto";
-import { compare } from "bcryptjs";
+import { hash, compare } from "bcryptjs";
 import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
 
-// Initialize Prisma and Resend with error handling
 const prisma = new PrismaClient();
 const resend = new Resend(process.env.RESEND_API_KEY);
-
-if (!process.env.RESEND_API_KEY) {
-  console.error("RESEND_API_KEY is not defined");
-}
-
-if (!process.env.NEXT_PUBLIC_APP_URL) {
-  console.error("NEXT_PUBLIC_APP_URL is not defined");
-}
 
 // Validation schemas
 const emailSchema = z.object({
@@ -31,15 +23,8 @@ const verifyPinSchema = z.object({
   pin: z.string().length(6, "PIN must be 6 digits"),
 });
 
-// Type definitions
-interface VerificationDetails {
-  token: string;
-  pin: string;
-  tokenExpiry: Date;
-}
-
 // Generate verification details
-function generateVerificationDetails(): VerificationDetails {
+function generateVerificationDetails() {
   return {
     token: randomBytes(32).toString("hex"),
     pin: Math.floor(100000 + Math.random() * 900000).toString(),
@@ -52,15 +37,60 @@ function getEmailTemplate(
   firstName: string,
   verificationLink: string,
   verificationPin: string,
-): string {
+) {
   return `
-    <div>
-      <h1>Hello ${firstName}!</h1>
-      <p>Please verify your email address by clicking the link below:</p>
-      <p><a href="${verificationLink}">Verify Email</a></p>
-      <p>Or enter this verification PIN: ${verificationPin}</p>
-      <p>This link and PIN will expire in 24 hours.</p>
-    </div>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Verify Your Email</title>
+        <style>
+            body { font-family: -apple-system, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #00897b; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background-color: #ffffff; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+            .button { display: inline-block; padding: 12px 24px; background-color: #00897b; color: white; text-decoration: none; 
+                     border-radius: 5px; margin: 20px 0; font-weight: bold; }
+            .pin-box { font-size: 20px; font-weight: bold; color: #00897b; text-align: center; background-color: #f9f9f9;
+                      padding: 10px 15px; border: 1px dashed #00897b; border-radius: 5px; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 14px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>Welcome to ProtonMedicare! ✨</h1>
+            </div>
+            <div class="content">
+                <h2>Hey ${firstName}! 👋</h2>
+                <p>We're thrilled to have you join our community! 🎉</p>
+                <p>Please verify your email address to start using your account. You can do this in two ways:</p>
+                
+                <div style="text-align: center;">
+                    <a href="${verificationLink}" class="button">
+                        Verify My Email 🚀
+                    </a>
+                </div>
+                
+                <p>or</p>
+                
+                <p>Use this PIN to verify your email address:</p>
+                <div class="pin-box">
+                    ${verificationPin}
+                </div>
+                
+                <p>This link and PIN will expire in 24 hours ⏰</p>
+                
+                <p>If you didn't create an account, you can safely ignore this email 💌</p>
+                
+                <div class="footer">
+                    <p>Need help? Reply to this email or contact our support team 💪</p>
+                    <p>© ${new Date().getFullYear()} ProtonMedicare. All rights reserved. 🏥</p>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
   `;
 }
 
@@ -70,12 +100,7 @@ async function sendVerificationEmail(
   firstName: string,
   token: string,
   pin: string,
-): Promise<boolean> {
-  if (!process.env.NEXT_PUBLIC_APP_URL) {
-    console.error("NEXT_PUBLIC_APP_URL is not defined");
-    return false;
-  }
-
+) {
   const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}/auth/verify-email?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
 
   try {
@@ -98,11 +123,10 @@ async function sendVerificationEmail(
   }
 }
 
-// Update email function
-async function updateEmail(formData: FormData) {
+export async function updateEmail(prevState: any, formData: FormData) {
   const schema = z.object({
-    email: z.string().email("Invalid email format"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    email: z.string().email(),
+    password: z.string().min(6),
   });
 
   const parse = schema.safeParse({
@@ -111,86 +135,57 @@ async function updateEmail(formData: FormData) {
   });
 
   if (!parse.success) {
-    return {
-      success: false,
-      message: parse.error.errors[0].message || "Invalid input",
-    };
+    return { success: false, message: "Invalid email or password format" };
   }
 
   try {
-    if (!process.env.JWT_SECRET) {
-      console.error("JWT_SECRET is not defined");
-      return {
-        success: false,
-        message: "Server configuration error",
-      };
-    }
-
     const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
+    const userId = cookieStore.get("userId")?.value;
 
-    if (!token) {
-      return {
-        success: false,
-        message: "Not authenticated",
-      };
-    }
+    // if (!userId) {
+    //   return { success: false, message: "Not authenticated" };
+    // }
 
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET) as {
-        id: string;
-        email: string;
-      };
-    } catch (jwtError) {
-      console.error("JWT verification error:", jwtError);
-      return {
-        success: false,
-        message: "Invalid or expired authentication token",
-      };
-    }
+    const { email, password } = parse.data;
 
+    // Get user details
     const user = await prisma.users.findUnique({
-      where: { id: decoded.id },
+      where: { id: userId },
     });
 
     if (!user) {
-      return {
-        success: false,
-        message: "User not found",
-      };
+      return { success: false, message: "User not found" };
     }
 
-    const passwordMatch = await compare(parse.data.password, user.password);
+    // Verify password
+    const passwordMatch = await compare(password, user.password);
     if (!passwordMatch) {
-      return {
-        success: false,
-        message: "Incorrect password",
-      };
+      return { success: false, message: "Incorrect password" };
     }
 
-    const normalizedEmail = parse.data.email.toLowerCase();
+    // Validate email format
+    const validatedData = emailSchema.parse({ email });
 
+    // Check if email exists
     const existingUser = await prisma.users.findFirst({
       where: {
-        email: normalizedEmail,
-        id: { not: decoded.id },
+        email: validatedData.email.toLowerCase(),
+        id: { not: userId },
       },
     });
 
     if (existingUser) {
-      return {
-        success: false,
-        message: "Email address is already in use",
-      };
+      return { success: false, message: "Email address already in use" };
     }
 
+    // Generate verification details
     const verificationDetails = generateVerificationDetails();
 
+    // Update user email
     await prisma.users.update({
-      where: { id: decoded.id },
+      where: { id: userId },
       data: {
-        email: normalizedEmail,
+        email: validatedData.email.toLowerCase(),
         isVerified: false,
         verificationToken: verificationDetails.token,
         verificationPin: verificationDetails.pin,
@@ -198,37 +193,39 @@ async function updateEmail(formData: FormData) {
       },
     });
 
+    // Send verification email
     const emailSent = await sendVerificationEmail(
-      normalizedEmail,
+      validatedData.email,
       user.firstName ?? "",
       verificationDetails.token,
       verificationDetails.pin,
     );
 
     if (!emailSent) {
-      return {
-        success: false,
-        message: "Failed to send verification email",
-      };
+      return { success: false, message: "Failed to send verification email" };
     }
 
     return {
       success: true,
       message:
-        "Email updated successfully. Please check your inbox for verification instructions.",
+        "Email updated. Please check your inbox for verification instructions.",
     };
   } catch (error) {
     console.error("Update email error:", error);
+    if (error instanceof z.ZodError) {
+      return { success: false, message: error.errors[0].message };
+    }
     return {
       success: false,
-      message:
-        "An error occurred while updating your email. Please try again later.",
+      message: "An error occurred. Please try again later.",
     };
   }
 }
 
-// Resend verification code
-async function resendVerificationCode(formData: FormData) {
+export async function resendVerificationCode(
+  prevState: any,
+  formData: FormData,
+) {
   const schema = z.object({
     email: z.string().email(),
   });
@@ -238,18 +235,27 @@ async function resendVerificationCode(formData: FormData) {
   });
 
   if (!parse.success) {
+    console.log("Email validation failed:", parse.error);
     return { success: false, message: "Invalid email format" };
   }
 
   try {
-    const validatedData = emailSchema.parse({ email: parse.data.email });
+    const email = formData.get("email") as string;
+    console.log("Attempting to resend verification for email:", email);
+
+    const validatedData = emailSchema.parse({ email });
     const normalizedEmail = validatedData.email.toLowerCase();
 
+    console.log("Looking for user with email:", normalizedEmail);
+
+    // Get user details with more detailed query
     const user = await prisma.users.findFirst({
       where: {
         email: normalizedEmail,
       },
     });
+
+    console.log("Found user:", user);
 
     if (!user) {
       return {
@@ -265,8 +271,11 @@ async function resendVerificationCode(formData: FormData) {
       };
     }
 
+    // Generate new verification details
     const verificationDetails = generateVerificationDetails();
+    console.log("Generated new verification details");
 
+    // Update user
     await prisma.users.update({
       where: { id: user.id },
       data: {
@@ -276,12 +285,17 @@ async function resendVerificationCode(formData: FormData) {
       },
     });
 
+    console.log("Updated user with new verification details");
+
+    // Send verification email
     const emailSent = await sendVerificationEmail(
       normalizedEmail,
       user.firstName ?? "",
       verificationDetails.token,
       verificationDetails.pin,
     );
+
+    console.log("Email send attempt result:", emailSent);
 
     if (!emailSent) {
       return { success: false, message: "Failed to send verification email" };
@@ -300,26 +314,25 @@ async function resendVerificationCode(formData: FormData) {
   }
 }
 
-// Verify email
-async function verifyEmail(formData: FormData) {
+export async function POST(req: Request) {
   try {
+    const formData = await req.formData();
     const email = formData.get("email") as string;
     const pin = formData.get("pin") as string;
 
     const validatedData = verifyPinSchema.safeParse({ email, pin });
 
     if (!validatedData.success) {
-      return {
+      return Response.json({
         success: false,
         message: "Invalid input",
-      };
+      });
     }
 
-    const normalizedEmail = validatedData.data.email.toLowerCase();
-
+    // Verify PIN
     const user = await prisma.users.findFirst({
       where: {
-        email: normalizedEmail,
+        email: validatedData.data.email.toLowerCase(),
         verificationPin: validatedData.data.pin,
         tokenExpiry: { gt: new Date() },
         isVerified: false,
@@ -327,12 +340,13 @@ async function verifyEmail(formData: FormData) {
     });
 
     if (!user) {
-      return {
+      return Response.json({
         success: false,
         message: "Invalid or expired verification code",
-      };
+      });
     }
 
+    // Mark as verified
     await prisma.users.update({
       where: { id: user.id },
       data: {
@@ -343,65 +357,16 @@ async function verifyEmail(formData: FormData) {
       },
     });
 
-    return {
+    return Response.json({
       success: true,
       message: "Email verified successfully",
       redirect: "/signin",
-    };
+    });
   } catch (error) {
     console.error("Verify email error:", error);
-    return {
+    return Response.json({
       success: false,
       message: "An error occurred. Please try again later.",
-    };
-  }
-}
-
-export async function POST(req: Request) {
-  try {
-    const formData = await req.formData();
-    const action = formData.get("action") as string;
-
-    switch (action) {
-      case "updateEmail":
-        return NextResponse.json(await updateEmail(formData));
-      case "resendVerification":
-        return NextResponse.json(await resendVerificationCode(formData));
-      case "verifyEmail":
-        return NextResponse.json(await verifyEmail(formData));
-      default:
-        return NextResponse.json(
-          { success: false, message: "Invalid action" },
-          { status: 400 },
-        );
-    }
-  } catch (error) {
-    console.error("API route error:", error);
-    return NextResponse.json(
-      { success: false, message: "An error occurred. Please try again later." },
-      { status: 500 },
-    );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
-
-export async function GET(req: NextRequest) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
-
-  if (!token) {
-    return NextResponse.redirect(new URL("/login", req.url));
-  }
-
-  try {
-    if (!process.env.JWT_SECRET) {
-      throw new Error("JWT_SECRET is not defined");
-    }
-    jwt.verify(token, process.env.JWT_SECRET);
-    // Allow access if token is valid
-    return new NextResponse("Authenticated", { status: 200 });
-  } catch (error) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    });
   }
 }

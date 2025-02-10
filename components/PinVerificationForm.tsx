@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,74 +5,94 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useActionState } from "react";
-import { verifyEmail } from "@/app/api/verifyemail/route";
 
 interface PinVerificationFormProps {
   email: string;
   onBack: () => void;
 }
 
+// Define the expected response type
+interface VerificationResponse {
+  success: boolean;
+  message: string;
+  redirect?: string;
+}
+
 export function PinVerificationForm({
   email,
-  onBack,
-}: PinVerificationFormProps) {
+  onVerificationComplete,
+}: {
+  email: string;
+  onVerificationComplete: () => void;
+}) {
   const [pin, setPin] = useState("");
-  const [state, formAction] = useActionState(verifyEmail, null);
-  const [isPending, setIsPending] = useState(false);
-  const router = useRouter();
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  const handleVerify = async (formData: FormData) => {
-    setIsPending(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsVerifying(true);
+
     try {
-      const result = await formAction(formData);
-      if (result?.success) {
+      const formData = new FormData();
+      formData.append("action", "verifyEmail");
+      formData.append("email", email);
+      formData.append("pin", pin);
+
+      const response = await fetch("/api/verifyemail", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
         toast.success("Email verified successfully!");
         sessionStorage.removeItem("unverifiedEmail");
-        setTimeout(() => router.push("/signin"), 2000);
+        onVerificationComplete();
+        if (data.redirect) {
+          window.location.href = data.redirect;
+        }
       } else {
-        toast.error(result?.message || "Verification failed");
+        toast.error(data.message || "Failed to verify email");
       }
     } catch (error) {
-      toast.error("An error occurred during verification");
+      toast.error("An error occurred while verifying email");
     } finally {
-      setIsPending(false);
+      setIsVerifying(false);
     }
   };
 
   return (
-    <form action={handleVerify} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="pin">Enter Verification PIN</Label>
+        <Label htmlFor="pin">Verification PIN</Label>
         <Input
           id="pin"
           type="text"
+          inputMode="numeric"
+          pattern="[0-9]{6}"
+          maxLength={6}
           value={pin}
           onChange={(e) => setPin(e.target.value)}
-          placeholder="Enter the PIN from your email"
-          className="text-center text-lg tracking-wider"
-          maxLength={6}
+          placeholder="Enter 6-digit PIN"
+          required
         />
       </div>
 
-      <div className="space-y-4">
-        <Button
-          type="submit"
-          className="w-full bg-teal-600 hover:bg-teal-700"
-          disabled={isPending}
-        >
-          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Verify PIN
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          className="w-full"
-          onClick={onBack}
-        >
-          Back
-        </Button>
-      </div>
+      <Button
+        type="submit"
+        className="w-full bg-teal-600 hover:bg-teal-700"
+        disabled={isVerifying || pin.length !== 6}
+      >
+        {isVerifying ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Verifying...
+          </>
+        ) : (
+          "Verify Email"
+        )}
+      </Button>
     </form>
   );
 }

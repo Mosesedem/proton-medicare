@@ -51,7 +51,7 @@ export default function VerifyEmailClient() {
           {currentStep === "pin" && (
             <PinVerificationForm
               email={email}
-              onBack={() => setCurrentStep("initial")}
+              onVerificationComplete={() => setCurrentStep("initial")}
             />
           )}
 
