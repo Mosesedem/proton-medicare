@@ -35,7 +35,7 @@ export function useEnrollmentForm() {
   useEffect(() => {
     const selectedPlan = plans.find((p) => p.name === formData.plan);
     const selectedDuration = durations.find(
-      (d) => d.value === formData.duration
+      (d) => d.value === formData.duration,
     );
     if (selectedPlan && selectedDuration) {
       const basePrice = selectedPlan.basePrice;
