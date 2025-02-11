@@ -15,7 +15,7 @@ const pinSchema = z.object({
 const resetSchema = z.object({
   email: z.string().email(),
   pin: z.string().length(6),
-  new_password: z.string().min(8),
+  new_password: z.string().min(6),
 });
 
 // Generate a 6-digit PIN

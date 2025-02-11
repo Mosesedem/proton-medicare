@@ -134,7 +134,9 @@ async function sendVerificationEmail(
   verificationToken: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}/verify?token=${verificationToken}`;
+    // const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}/verify?token=${verificationToken}`;
+
+    const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}/verify?token=${encodeURIComponent(verificationToken)}&email=${encodeURIComponent(email)}`;
 
     const { data, error } = await resend.emails.send({
       from: "Proton Medicare <hq@hq.protonmedicare.com>",

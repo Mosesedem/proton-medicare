@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 import { useFormState } from "react-dom";
 // import { updateEmail } from "@/app/api/verifyemail/route";
 
@@ -19,6 +20,8 @@ export function UpdateEmailForm({
   const [email, setEmail] = useState(currentEmail);
   const [password, setPassword] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,16 +71,31 @@ export function UpdateEmailForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Confirm Password</Label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-            required
-          />
+          <Label htmlFor="password"> Enter Password</Label>
+          <div className="relative">
+            <Input
+              id="password"
+              name="password"
+              value={password}
+              type={showPassword ? "text" : "password"}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-1/2 -translate-y-1/2"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 

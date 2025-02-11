@@ -66,7 +66,7 @@ export function EmailVerificationForm({
           <Button
             type="submit"
             variant="default"
-            className="w-full bg-teal-600 hover:bg-teal-700"
+            className="w-full bg-teal-500 hover:bg-teal-600"
             disabled={isPending}
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
