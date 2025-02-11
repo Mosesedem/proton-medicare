@@ -1,28 +1,23 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, type FormEvent } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Eye, EyeOff } from "lucide-react";
 import { Toaster, toast } from "sonner";
+import { Slideshow } from "@/components/Slideshow";
+import { useLayoutConfig } from "@/contexts/LayoutConfigContext";
 
 interface FormData {
   email: string;
   password: string;
 }
 
-export default function SignInPage() {
+export default function ModernSignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     email: "",
@@ -30,6 +25,7 @@ export default function SignInPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const { setConfig } = useLayoutConfig();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -40,13 +36,11 @@ export default function SignInPage() {
   };
 
   const validateForm = (): boolean => {
-    // Check for empty fields
     if (!formData.email.trim() || !formData.password.trim()) {
       toast.error("All fields are required");
       return false;
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       toast.error("Please enter a valid email address");
@@ -55,11 +49,14 @@ export default function SignInPage() {
 
     return true;
   };
+  useEffect(() => {
+    setConfig({ hideHeader: false, hideFooter: true });
+    return () => setConfig({ hideHeader: false, hideFooter: false });
+  }, [setConfig]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Add form validation first
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -73,13 +70,11 @@ export default function SignInPage() {
       const data = await response.json();
 
       if (data.success) {
-        // Store user data and redirect to dashboard
         sessionStorage.setItem("user", JSON.stringify(data.user));
         sessionStorage.setItem("token", data.token);
         toast.success("Login successful!");
         router.push("/dashboard");
       } else {
-        // Handle different error scenarios
         if (data.redirect?.includes("/auth/verify-email")) {
           sessionStorage.setItem("unverifiedEmail", formData.email);
           toast.error("Please verify your email address");
@@ -103,83 +98,87 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="container mx-auto flex min-h-screen items-center justify-center p-4">
+    <div className="flex h-screen">
       <Toaster position="top-center" richColors closeButton />
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
-          <CardDescription>
+      {/* Left side - Sign In Form */}
+      <div className="w-full overflow-y-auto p-8 pt-[200px] md:w-1/2">
+        <div className="mx-auto max-w-md">
+          <h1 className="mb-6 text-3xl font-bold">Sign In</h1>
+          <p className="mb-8 text-muted-foreground">
             Enter your credentials to access your account
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="focus:ring-2 focus:ring-teal-200"
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                  href="/reset-password"
-                  className="text-sm text-teal-500 hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="relative">
+          </p>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={formData.email}
                   onChange={handleChange}
                   required
-                  className="pr-10 focus:ring-2 focus:ring-teal-500"
+                  className="focus:ring-2 focus:ring-teal-200"
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2"
-                  onClick={togglePasswordVisibility}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </Button>
+              </div>
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link
+                    href="/reset-password"
+                    className="text-sm text-teal-500 hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    className="pr-10 focus:ring-2 focus:ring-teal-500"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2"
+                    onClick={togglePasswordVisibility}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
             <Button
               type="submit"
-              className="w-full bg-teal-600 hover:bg-teal-700"
+              className="w-full bg-teal-500 hover:bg-teal-600"
               disabled={isLoading}
             >
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              Do not have an account?{" "}
-              <Link href="/signup" className="text-teal-600 hover:underline">
-                Sign up
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
-      </Card>
+          </form>
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Don't have an account?{" "}
+            <Link href="/signup" className="text-teal-600 hover:underline">
+              Sign up
+            </Link>
+          </p>
+        </div>
+      </div>
+
+      {/* Right side - Slideshow */}
+      <div className="hidden w-1/2 md:block">
+        <Slideshow />
+      </div>
     </div>
   );
 }
