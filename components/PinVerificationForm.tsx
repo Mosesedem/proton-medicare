@@ -70,7 +70,6 @@ export function PinVerificationForm({
           required
         />
       </div>
-
       <div className="space-y-4">
         <Button
           type="submit"
