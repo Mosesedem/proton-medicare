@@ -42,15 +42,40 @@ export async function POST(request: Request) {
     }
 
     // Handle file upload
-    let headshotPath = "";
+    // Upload headshot to PHP API
     let headshotUrl = "";
-    if (headshot) {
-      const bytes = await headshot.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const path = join("public", "uploads", `${Date.now()}_${headshot.name}`);
-      await writeFile(path, buffer);
-      headshotPath = path.replace("public", "");
-      headshotUrl = `/uploads/${Date.now()}_${headshot.name}`;
+    const uploadUrl = "https://plutopredictions.com/proton/uploads.php"; // Change this to your PHP upload URL
+    const uploadFormData = new FormData();
+    uploadFormData.append("file", headshot);
+
+    try {
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      const uploadResult = await uploadResponse.json();
+      if (!uploadResult.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "File upload failed",
+            error: uploadResult.error,
+          },
+          { status: 500 },
+        );
+      }
+
+      headshotUrl = uploadResult.imageUrl;
+    } catch (error) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Error uploading file",
+          error: String(error),
+        },
+        { status: 500 },
+      );
     }
 
     // Authentication (example - replace with your actual authentication logic)
@@ -104,7 +129,7 @@ export async function POST(request: Request) {
       amount: amount,
       paymentStatus: "PENDING",
       headshotUrl,
-      headshotPath,
+      headshotPath: headshotUrl,
       userId: user.id,
     });
 
@@ -122,7 +147,7 @@ export async function POST(request: Request) {
         amount: amount,
         paymentStatus: "PENDING",
         headshotUrl,
-        headshotPath,
+        headshotPath: headshotUrl,
         userId: user.id,
       },
     });

@@ -46,69 +46,66 @@ export function AccountSettingsCard() {
   ];
 
   return (
-<Card className="max-w-[1200px] mx-auto">
-  <div className="sticky top-0 z-10 bg-card border-b">
-    <Breadcrumb className="px-4 sm:px-6 py-4">
-      <BreadcrumbList>
-        <BreadcrumbItem>
-          <BreadcrumbLink
-            href="/dashboard"
-            className="hover:text-primary transition-colors"
-          >
-            Dashboard
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator />
-        <BreadcrumbItem>
-          <BreadcrumbPage>Settings</BreadcrumbPage>
-        </BreadcrumbItem>
-      </BreadcrumbList>
-    </Breadcrumb>
+    <Card className="mx-auto max-w-[1200px]">
+      <div className="sticky top-0 z-10 border-b bg-card">
+        <Breadcrumb className="px-4 py-4 sm:px-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink
+                href="/dashboard"
+                className="transition-colors hover:text-primary"
+              >
+                Dashboard
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Settings</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
-    <CardHeader className="px-4 sm:px-6 py-4">
-      <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl">
-      {/* <Button className="px-2 bg-slate-500 hover:bg-slate-400"
+        <CardHeader className="px-4 py-4 sm:px-6">
+          <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl">
+            {/* <Button className="px-2 bg-slate-500 hover:bg-slate-400"
       onClick={() => window.location.href = '/dashboard'}>← Go back</Button> */}
-        <Settings className="h-6 w-6" />
-        Account Settings
-      </CardTitle>
-    </CardHeader>
-  </div>
+            <Settings className="h-6 w-6" />
+            Account Settings
+          </CardTitle>
+        </CardHeader>
+      </div>
 
-  <CardContent className="p-4 sm:p-6">
-    <div
-      className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3"
-    >
-      {settingsOptions.map((option, index) => {
-        const Icon = option.icon;
-        return (
-          <Button
-            key={index}
-            variant="outline"
-            className="group h-auto p-4 sm:p-6 justify-start w-full transition-all hover:shadow-md hover:border-primary"
-            asChild
-          >
-            <Link href={option.path}>
-              <div className="flex items-start sm:items-center gap-4 w-full">
-                <div className="flex-shrink-0">
-                  <Icon className="h-5 w-5 sm:h-6 sm:w-6 group-hover:text-primary transition-colors" />
-                </div>
-                <div className="flex-grow text-left min-w-0">
-                  <div className="font-medium text-base sm:text-lg group-hover:text-primary transition-colors">
-                    {option.label}
+      <CardContent className="p-4 sm:p-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          {settingsOptions.map((option, index) => {
+            const Icon = option.icon;
+            return (
+              <Button
+                key={index}
+                variant="outline"
+                className="group h-auto w-full justify-start p-4 transition-all hover:border-primary hover:shadow-md sm:p-6"
+                asChild
+              >
+                <Link href={option.path}>
+                  <div className="flex w-full items-start gap-4 sm:items-center">
+                    <div className="flex-shrink-0">
+                      <Icon className="h-5 w-5 transition-colors group-hover:text-primary sm:h-6 sm:w-6" />
+                    </div>
+                    <div className="min-w-0 flex-grow text-left">
+                      <div className="text-base font-medium transition-colors group-hover:text-primary sm:text-lg">
+                        {option.label}
+                      </div>
+                      <div className="mt-1 line-clamp-2 text-sm text-muted-foreground sm:line-clamp-1">
+                        {option.description}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-1">
-                    {option.description}
-                  </div>
-                </div>
-              </div>
-            </Link>
-          </Button>
-        );
-      })}
-    </div>
-  </CardContent>
-</Card>
-
+                </Link>
+              </Button>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Database error:", error);
     return NextResponse.json(
-      { error: "Failed to check email existence. Please try again later." },
+      { error: "Operation failed. Please try again later." },
       { status: 500 },
     ); // More user-friendly error message
   } finally {
