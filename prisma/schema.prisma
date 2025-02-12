@@ -15,29 +15,53 @@ datasource db {
 }
 
 model Users {
-  id                     String    @id @default(cuid())
-  email                  String    @unique
+  id                     String       @id @default(cuid())
+  email                  String       @unique
   firstName              String?
   lastName               String?
   phone                  String?
   phoneNumber            String?
   dateOfBirth            DateTime?
   password               String
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
   verificationCode       String?
   resetCode              String?
   imageUrl               String?
   verificationCodeExpiry DateTime?
   resetCodeExpiry        DateTime?
-  verificationToken      String?   @unique
+  verificationToken      String?      @unique
   tokenExpiry            DateTime?
-  isVerified             Boolean   @default(false)
+  isVerified             Boolean      @default(false)
   verificationPin        String?
   resetPin               String?
   resetPinExpiry         DateTime?
-  resetAttempts          Int       @default(0)
+  resetAttempts          Int          @default(0)
   passwordUpdtaedAt      DateTime?
+  enrollments            Enrollment[] // Add this line!
 
   @@map("users")
+}
+
+model Enrollment {
+  id            Int       @id @default(autoincrement())
+  firstName     String
+  lastName      String
+  email         String
+  phone         String
+  dateOfBirth   DateTime?
+  dob           DateTime?
+  maritalStatus String
+  referral      String?
+  plan          String
+  duration      String
+  amount        Float
+  paymentStatus String
+  headshotUrl   String
+  headshotPath  String
+  createdAt     DateTime  @default(now())
+  userId        String
+  users         Users     @relation(fields: [userId], references: [id])
+
+  @@map("enrollments")
 }

@@ -41,12 +41,22 @@ export const checkEmail = async (email: string) => {
 };
 
 export const login = async (email: string, password: string) => {
-  const response = await fetch("/api/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  return response.json();
+  try {
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json();
+    console.log("Login response:", data); // Debug log
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+    }
+    return data;
+  } catch (error) {
+    console.error("Login error:", error);
+    throw error;
+  }
 };
 
 export const register = async (
@@ -54,19 +64,38 @@ export const register = async (
   password: string,
   firstName: string,
   lastName: string,
+  phone: string,
 ) => {
-  const response = await fetch("/api/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, firstName, lastName }),
-  });
-  return response.json();
+  try {
+    const response = await fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, firstName, lastName, phone }),
+    });
+    const data = await response.json();
+    console.log("Register response:", data); // Debug log
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+    }
+    return data;
+  } catch (error) {
+    console.error("Register error:", error);
+    throw error;
+  }
 };
 
 export const createEnrollment = async (formData: FormData) => {
   try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
     const response = await fetch("/api/create-enrollment", {
       method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
       body: formData,
     });
 
@@ -279,6 +308,7 @@ export default function EnrollmentForm() {
           password,
           formData.firstName,
           formData.lastName,
+          formData.phone,
         );
       } else {
         authResult = await login(formData.email, password);
@@ -286,7 +316,8 @@ export default function EnrollmentForm() {
 
       console.log("Auth result:", authResult);
 
-      if (authResult.success) {
+      if (authResult.success && authResult.token) {
+        // Check for token
         const enrollmentFormData = new FormData();
         Object.entries(formData).forEach(([key, value]) => {
           if (value instanceof File) {
@@ -315,7 +346,7 @@ export default function EnrollmentForm() {
           );
         }
       } else {
-        throw new Error(authResult.message || "Authentication failed");
+        throw new Error("Authentication failed - no token received");
       }
     } catch (error) {
       console.error("Error in handleModalSubmit:", error);

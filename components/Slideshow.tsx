@@ -5,11 +5,8 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const images = [
-  "https://skydd.ng/assets/Onboarding/1.svg",
-  "https://skydd.ng/assets/Onboarding/2.svg",
-  "https://skydd.ng/assets/Onboarding/3.svg",
-  "https://skydd.ng/assets/Onboarding/5.svg",
-  "https://skydd.ng/assets/Onboarding/4.svg",
+  "https://www.etegram.com/logo-white-color.svg",
+  "https://www.etegram.com/pages/homepage/Unlock-Unimaginable-Payment.svg",
 ];
 
 export function Slideshow() {

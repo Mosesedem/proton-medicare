@@ -1,16 +1,16 @@
 interface PreviewStepProps {
   formData: {
-    firstName: string
-    lastName: string
-    email: string
-    phone: string
-    dob: string
-    maritalStatus: string
-    plan: string
-    duration: string
-    referral: string
-  }
-  previewImage: string | null
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    dob: string;
+    maritalStatus: string;
+    plan: string;
+    duration: string;
+    referral: string;
+  };
+  previewImage: string | null;
 }
 
 export function PreviewStep({ formData, previewImage }: PreviewStepProps) {
@@ -49,12 +49,11 @@ export function PreviewStep({ formData, previewImage }: PreviewStepProps) {
             <img
               src={previewImage || "/placeholder.svg"}
               alt="Headshot Preview"
-              className="max-w-full h-auto rounded-lg"
+              className="h-auto max-w-full rounded-lg"
             />
           )}
         </div>
       </div>
     </div>
-  )
+  );
 }
-
