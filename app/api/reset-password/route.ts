@@ -276,7 +276,7 @@ export async function POST(req: NextRequest) {
       const { email } = validated.data;
 
       // Check if user exists
-      const user = await prisma.users.findUnique({ where: { email } });
+      const user = await prisma.user.findUnique({ where: { email } });
       if (!user) {
         return NextResponse.json(
           { success: false, message: "Email not found" },
@@ -285,7 +285,7 @@ export async function POST(req: NextRequest) {
       }
 
       const pin = generatePin();
-      await prisma.users.update({
+      await prisma.user.update({
         where: { email },
         data: {
           resetPin: pin,
@@ -317,7 +317,7 @@ export async function POST(req: NextRequest) {
       }
 
       const { email, pin } = validated.data;
-      const user = await prisma.users.findFirst({
+      const user = await prisma.user.findFirst({
         where: { email, resetPin: pin },
       });
 
@@ -345,7 +345,7 @@ export async function POST(req: NextRequest) {
       }
 
       const { email, pin, new_password } = validated.data;
-      const user = await prisma.users.findFirst({
+      const user = await prisma.user.findFirst({
         where: { email, resetPin: pin },
       });
 
@@ -356,7 +356,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      await prisma.users.update({
+      await prisma.user.update({
         where: { email },
         data: { password: new_password, resetPin: null, resetPinExpiry: null },
       });

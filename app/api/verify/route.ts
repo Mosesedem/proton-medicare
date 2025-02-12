@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     const { token: verificationToken, email: userEmail } = validatedData.data;
 
     // Check if the user exists and is not yet verified
-    const user = await prisma.users.findFirst({
+    const user = await prisma.user.findFirst({
       where: {
         email: userEmail,
         verificationToken: verificationToken,
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 
     // Update user verification status using Prisma transaction
     await prisma.$transaction([
-      prisma.users.update({
+      prisma.user.update({
         where: { id: user.id },
         data: {
           isVerified: true,

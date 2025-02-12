@@ -197,7 +197,7 @@ async function updateEmail(formData: FormData) {
       };
     }
 
-    const user = await prisma.users.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: decoded.id },
     });
 
@@ -218,7 +218,7 @@ async function updateEmail(formData: FormData) {
 
     const normalizedEmail = parse.data.email.toLowerCase();
 
-    const existingUser = await prisma.users.findFirst({
+    const existingUser = await prisma.user.findFirst({
       where: {
         email: normalizedEmail,
         id: { not: decoded.id },
@@ -234,7 +234,7 @@ async function updateEmail(formData: FormData) {
 
     const verificationDetails = generateVerificationDetails();
 
-    await prisma.users.update({
+    await prisma.user.update({
       where: { id: decoded.id },
       data: {
         email: normalizedEmail,
@@ -292,7 +292,7 @@ async function resendVerificationCode(formData: FormData) {
     const validatedData = emailSchema.parse({ email: parse.data.email });
     const normalizedEmail = validatedData.email.toLowerCase();
 
-    const user = await prisma.users.findFirst({
+    const user = await prisma.user.findFirst({
       where: {
         email: normalizedEmail,
       },
@@ -314,7 +314,7 @@ async function resendVerificationCode(formData: FormData) {
 
     const verificationDetails = generateVerificationDetails();
 
-    await prisma.users.update({
+    await prisma.user.update({
       where: { id: user.id },
       data: {
         verificationToken: verificationDetails.token,
@@ -364,7 +364,7 @@ async function verifyEmail(formData: FormData) {
 
     const normalizedEmail = validatedData.data.email.toLowerCase();
 
-    const user = await prisma.users.findFirst({
+    const user = await prisma.user.findFirst({
       where: {
         email: normalizedEmail,
         verificationPin: validatedData.data.pin,
@@ -380,7 +380,7 @@ async function verifyEmail(formData: FormData) {
       };
     }
 
-    await prisma.users.update({
+    await prisma.user.update({
       where: { id: user.id },
       data: {
         isVerified: true,

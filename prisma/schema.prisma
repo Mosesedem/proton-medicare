@@ -14,8 +14,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Users {
-  id                     String       @id @default(cuid())
+model User {
+  id                     Int          @id @default(autoincrement())
   email                  String       @unique
   firstName              String?
   lastName               String?
@@ -44,24 +44,24 @@ model Users {
 }
 
 model Enrollment {
-  id            Int       @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   firstName     String
   lastName      String
   email         String
   phone         String
-  dateOfBirth   DateTime?
-  dob           DateTime?
+  dateOfBirth   DateTime
   maritalStatus String
-  referral      String?
   plan          String
   duration      String
   amount        Float
   paymentStatus String
   headshotUrl   String
   headshotPath  String
-  createdAt     DateTime  @default(now())
-  userId        String
-  users         Users     @relation(fields: [userId], references: [id])
+  referral      String?
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@map("enrollments")
 }

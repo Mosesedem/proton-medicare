@@ -4,6 +4,8 @@ import { hash } from "bcryptjs";
 import { z } from "zod";
 import { Resend } from "resend";
 import { randomBytes } from "crypto";
+import jwt from "jsonwebtoken";
+import { cookies } from "next/headers";
 
 // Initialize Prisma Client
 const prisma = new PrismaClient();
@@ -146,7 +148,7 @@ export async function POST(request: NextRequest) {
     const validatedData = registerSchema.parse(body);
 
     // Check for existing email (case-insensitive)
-    const existingUser = await prisma.users.findUnique({
+    const existingUser = await prisma.user.findUnique({
       where: {
         email: validatedData.email.toLowerCase(),
       },
@@ -160,7 +162,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for existing phone number
-    const existingPhone = await prisma.users.findFirst({
+    const existingPhone = await prisma.user.findFirst({
       where: {
         phone: validatedData.phone,
       },
@@ -180,7 +182,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hash(validatedData.password, 12);
 
     // Create user with verification token
-    const user = await prisma.users.create({
+    const user = await prisma.user.create({
       data: {
         firstName: validatedData.firstName,
         lastName: validatedData.lastName,
@@ -200,9 +202,27 @@ export async function POST(request: NextRequest) {
       verificationToken,
     );
 
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET!,
+      { expiresIn: "7d" },
+    );
+
+    // Set the token as an httpOnly cookie
+    const cookieStore = await cookies();
+    cookieStore.set({
+      name: "auth_token",
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+
     // Return appropriate response based on email sending result
     return NextResponse.json({
       success: true,
+      token,
       message: emailResult.success
         ? "Account created successfully! Please check your email to verify your account."
         : "Account created successfully! There was an issue sending the verification email. Please contact support.",
