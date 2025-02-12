@@ -48,6 +48,7 @@ export function PinVerificationForm({
       }
     } catch (error) {
       toast.error("An error occurred while verifying email");
+      window.location.href = "/signin";
     } finally {
       setIsVerifying(false);
     }
