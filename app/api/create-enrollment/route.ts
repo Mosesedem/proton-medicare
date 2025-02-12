@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     // Handle file upload
     // Upload headshot to PHP API
     let headshotUrl = "";
-    const uploadUrl = "https://plutopredictions.com/proton/uploads.php"; // Change this to your PHP upload URL
+    const uploadUrl = "https://v2.protonmedicare.com/image/api.php"; // Change this to your PHP upload URL
     const uploadFormData = new FormData();
     uploadFormData.append("file", headshot);
 
