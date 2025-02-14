@@ -11,6 +11,8 @@ declare module "paystack" {
 
   interface TransactionInitializeParams {
     amount: number;
+    first_name: string;
+    last_name: string;
     email: string;
     currency?: string;
     reference?: string;

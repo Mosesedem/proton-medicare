@@ -15,8 +15,15 @@ type ValidDuration = keyof typeof DURATION_TO_INTERVAL_MAP;
 
 export async function POST(request: Request) {
   try {
-    const { email, price, plan, enrollment_id, paymentType } =
-      await request.json();
+    const {
+      firstName,
+      lastName,
+      email,
+      price,
+      plan,
+      enrollment_id,
+      paymentType,
+    } = await request.json();
 
     const enrollment = await prisma.enrollment.findUnique({
       where: { id: enrollment_id },
@@ -70,6 +77,8 @@ export async function POST(request: Request) {
 
         // Instead of directly creating a subscription, initialize a transaction with the plan
         const transactionResponse = await paystack.transaction.initialize({
+          first_name: firstName,
+          last_name: lastName,
           email: email,
           amount: price * 100,
           callback_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/verify-payment`,
@@ -111,6 +120,8 @@ export async function POST(request: Request) {
       // One-time payment logic
       try {
         const transactionResponse = await paystack.transaction.initialize({
+          first_name: firstName,
+          last_name: lastName,
           email: email,
           amount: price * 100,
           callback_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/verify-payment`,

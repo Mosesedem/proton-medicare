@@ -122,6 +122,8 @@ export interface ApiResponse {
 }
 
 export interface PaymentData {
+  firstName: string;
+  lastName: string;
   email: string;
   price: number;
   plan: string;
@@ -379,6 +381,8 @@ export default function EnrollmentForm() {
     setLoading(true);
     try {
       const paymentData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         email: formData.email,
         price: price,
         plan: formData.plan,
@@ -394,6 +398,8 @@ export default function EnrollmentForm() {
 
       const handler = window.PaystackPop.setup({
         key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
         email: formData.email,
         amount: price * 100,
         ref: paymentResult.reference,
