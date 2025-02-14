@@ -33,30 +33,65 @@ model User {
   resetAttempts          Int          @default(0)
   passwordUpdtaedAt      DateTime?
   enrollments            Enrollment[]
+  payments               Payment[]
 
   @@map("users")
 }
 
 model Enrollment {
-  id            Int      @id @default(autoincrement())
-  firstName     String
-  lastName      String
-  email         String
-  phone         String
-  dateOfBirth   DateTime
-  maritalStatus String
-  plan          String
-  duration      String
-  amount        Float
-  paymentStatus String
-  headshotUrl   String
-  headshotPath  String
-  referral      String?
-  userId        Int
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  planId        String
-  user          User     @relation(fields: [userId], references: [id])
+  id              Int       @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  email           String
+  phone           String
+  dateOfBirth     DateTime
+  maritalStatus   String
+  plan            String
+  duration        String
+  amount          Float
+  paymentStatus   String
+  headshotUrl     String
+  headshotPath    String
+  referral        String?
+  userId          Int
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  planId          String
+  status          String
+  lastPaymentDate DateTime
+  user            User      @relation(fields: [userId], references: [id])
+  payments        Payment[]
 
   @@map("enrollments")
+}
+
+model Payment {
+  id                Int      @id @default(autoincrement())
+  paystackId        String   @unique
+  reference         String   @unique
+  amount            Float
+  currency          String
+  status            String
+  channel           String
+  paidAt            DateTime
+  createdAt         DateTime
+  metadata          Json
+  authorization     Json
+  userId            Int
+  enrollmentId      Int
+  plan              String
+  planCode          String
+  isSubscription    Boolean
+  customerEmail     String
+  customerName      String
+  customerCode      String
+  cardLast4         String
+  cardType          String
+  authorizationCode String
+
+  user       User       @relation(fields: [userId], references: [id])
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+
+  @@index([userId])
+  @@index([enrollmentId])
 }
