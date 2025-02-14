@@ -1,3 +1,5 @@
+// app/api/create-enrollment/route.ts
+
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { plans, durations } from "@/lib/constants";
@@ -9,6 +11,39 @@ const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader) {
+      return NextResponse.json(
+        { success: false, message: "Authorization header missing" },
+        { status: 401 },
+      );
+    }
+
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "Token missing" },
+        { status: 401 },
+      );
+    }
+
+    let user;
+    try {
+      user = jwt.verify(token, process.env.JWT_SECRET || "") as { id: number };
+      if (!user || !user.id) {
+        return NextResponse.json(
+          { success: false, message: "Invalid token payload" },
+          { status: 401 },
+        );
+      }
+    } catch (jwtError) {
+      console.error("JWT verification failed:", jwtError);
+      return NextResponse.json(
+        { success: false, message: "Invalid token" },
+        { status: 401 },
+      );
+    }
+
     const formData = await request.formData();
 
     // Extract data from formData
@@ -21,6 +56,7 @@ export async function POST(request: Request) {
     const plan = formData.get("plan") as string;
     const duration = formData.get("duration") as string;
     const referral = formData.get("referral") as string;
+    const planId = formData.get("planId") as string;
     const headshot = formData.get("headshot") as File;
 
     // Validate required fields
@@ -33,7 +69,8 @@ export async function POST(request: Request) {
       !maritalStatus ||
       !plan ||
       !duration ||
-      !headshot
+      !headshot ||
+      !planId
     ) {
       return NextResponse.json(
         { success: false, message: "Missing required fields" },
@@ -44,7 +81,13 @@ export async function POST(request: Request) {
     // Handle file upload
     // Upload headshot to PHP API
     let headshotUrl = "";
-    const uploadUrl = "https://seller.rest/uploads.php"; // Change this to your PHP upload URL
+    const uploadUrl = process.env.PHP_UPLOAD_ENDPOINT; // Change this to your PHP upload URL
+    if (!uploadUrl) {
+      return NextResponse.json(
+        { success: false, message: "Could not upload image" },
+        { status: 500 },
+      );
+    }
     const uploadFormData = new FormData();
     uploadFormData.append("file", headshot);
 
@@ -78,20 +121,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Authentication (example - replace with your actual authentication logic)
-    const token = request.headers.get("Authorization")?.split(" ")[1];
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-    const user = jwt.verify(token, process.env.JWT_SECRET as string) as {
-      id: number;
-    };
-
     //Plan and duration validation
     const planData = plans.find((p) => p.name === plan);
+    const planIdData = plans.find((p) => p.id === planId);
     const durationData = durations.find((d) => d.value === duration);
 
     if (!planData || !durationData) {
@@ -113,6 +145,7 @@ export async function POST(request: Request) {
       plan,
       duration,
       referral,
+      planId,
     };
 
     // Log the data before creating the enrollment
@@ -125,6 +158,7 @@ export async function POST(request: Request) {
       maritalStatus: data.maritalStatus,
       referral: data.referral,
       plan: data.plan,
+      planId: data.planId,
       duration: String(duration),
       amount: amount,
       paymentStatus: "PENDING",
@@ -143,6 +177,7 @@ export async function POST(request: Request) {
         maritalStatus: data.maritalStatus,
         referral: data.referral,
         plan: data.plan,
+        planId: data.planId,
         duration: String(duration),
         amount: amount,
         paymentStatus: "PENDING",

@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 export interface FormData {
   duration: string;
   plan: string;
+  planId: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -19,6 +20,7 @@ export function useEnrollmentForm() {
   const [formData, setFormData] = useState<FormData>({
     duration: "",
     plan: "",
+    planId: "",
     firstName: "",
     lastName: "",
     email: "",

@@ -21,6 +21,7 @@ interface AdditionalInfoStepProps {
     dob: string;
     maritalStatus: string;
     plan: string;
+    planId: string;
     duration: string;
     referral: string;
   };
@@ -44,13 +45,27 @@ export function AdditionalInfoStep({
   useEffect(() => {
     const planFromUrl = searchParams.get("plan");
     if (planFromUrl && !formData.plan) {
-      handleSelectChange("plan", decodeURIComponent(planFromUrl));
+      const decodedPlan = decodeURIComponent(planFromUrl);
+      const selectedPlan = plans.find((p) => p.name === decodedPlan);
+      if (selectedPlan) {
+        handleSelectChange("plan", decodedPlan);
+        handleSelectChange("planId", selectedPlan.id);
+      }
       setIsPlanPreSelected(true);
     }
   }, [searchParams, handleSelectChange, formData.plan]);
 
   const handleChangePlan = () => {
     setShowPlanModal(true);
+  };
+
+  const handlePlanSelection = (planName: string) => {
+    const selectedPlan = plans.find((p) => p.name === planName);
+    if (selectedPlan) {
+      handleSelectChange("plan", planName);
+      handleSelectChange("planId", selectedPlan.id);
+    }
+    setShowPlanModal(false);
   };
 
   return (
@@ -63,7 +78,7 @@ export function AdditionalInfoStep({
               <>
                 <Input
                   id="plan"
-                  name="id"
+                  name="plan"
                   value={formData.plan}
                   readOnly
                   className="flex-1"
@@ -87,10 +102,10 @@ export function AdditionalInfoStep({
         </div>
 
         <Input
-          id="plan_id"
-          name="plan_id"
+          id="planId"
+          name="planId"
           type="hidden"
-          value={formData.dob}
+          value={formData.planId}
           onChange={handleInputChange}
           required
         />
@@ -178,13 +193,20 @@ export function AdditionalInfoStep({
         </div>
       </div>
 
-      <PlanSelectionModal
+      {/* <PlanSelectionModal
         isOpen={showPlanModal}
         onClose={() => setShowPlanModal(false)}
         onSelectPlan={(plan) => {
           handleSelectChange("plan", plan);
           setShowPlanModal(false);
         }}
+        plans={plans}
+      /> */}
+
+      <PlanSelectionModal
+        isOpen={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        onSelectPlan={handlePlanSelection}
         plans={plans}
       />
     </>

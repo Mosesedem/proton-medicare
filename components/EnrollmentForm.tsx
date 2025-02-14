@@ -177,6 +177,7 @@ export default function EnrollmentForm() {
       plan: "",
       duration: "",
       referral: "",
+      planId: "",
     });
     setCurrentStep(1);
     setShowModal(false);

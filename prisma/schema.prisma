@@ -52,6 +52,7 @@ model Enrollment {
   dateOfBirth   DateTime
   maritalStatus String
   plan          String
+  planId        String
   duration      String
   amount        Float
   paymentStatus String

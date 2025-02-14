@@ -1,9 +1,15 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface Plan {
   name: string;
   basePrice: number;
+  id: string;
 }
 
 interface PlanSelectionModalProps {
@@ -13,10 +19,15 @@ interface PlanSelectionModalProps {
   plans: Plan[];
 }
 
-export function PlanSelectionModal({ isOpen, onClose, onSelectPlan, plans }: PlanSelectionModalProps) {
+export function PlanSelectionModal({
+  isOpen,
+  onClose,
+  onSelectPlan,
+  plans,
+}: PlanSelectionModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg overflow-y-auto max-h-[80vh]">
+      <DialogContent className="max-h-[80vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Select a Plan</DialogTitle>
         </DialogHeader>
@@ -35,5 +46,5 @@ export function PlanSelectionModal({ isOpen, onClose, onSelectPlan, plans }: Pla
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
