@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { sql } from "@vercel/postgres";
+import { PrismaClient } from "@prisma/client";
 import { initializePaystack } from "@/lib/paystack";
+
+const prisma = new PrismaClient();
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -18,13 +20,17 @@ export async function GET(request: Request) {
     const response = await paystack.transaction.verify(reference);
 
     if (response.data.status === "success") {
-      // Update enrollment status in the database
-      await sql`
-        UPDATE enrollments
-        SET status = 'completed'
-        WHERE email = ${response.data.customer.email}
-        AND status = 'pending'
-      `;
+      // Update enrollment status using Prisma
+      await prisma.enrollment.updateMany({
+        where: {
+          email: response.data.customer.email,
+          id: response.data.metadata.enrollmentId,
+          paymentStatus: "pending",
+        },
+        data: {
+          paymentStatus: "completed",
+        },
+      });
 
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`,
@@ -40,5 +46,7 @@ export async function GET(request: Request) {
       { success: false, error: "Payment verification failed" },
       { status: 500 },
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
