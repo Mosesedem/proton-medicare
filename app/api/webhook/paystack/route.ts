@@ -44,7 +44,7 @@ export async function POST(request: Request) {
         throw new Error(`Enrollment not found for ID: ${enrollmentId}`);
       }
 
-      // Create payment record
+      // Create payment record with flattened structure
       await prisma.payment.create({
         data: {
           paystackId: data.id.toString(),
@@ -55,20 +55,38 @@ export async function POST(request: Request) {
           channel: data.channel,
           paidAt: new Date(data.paid_at),
           createdAt: new Date(data.created_at),
-          metadata: data.metadata,
-          authorization: data.authorization,
           userId: enrollment.userId,
           enrollmentId: enrollmentId,
+
+          // Metadata fields
           plan: data.metadata.plan,
           planCode: data.metadata.plan_code,
           isSubscription: data.metadata.is_subscription === "true",
+          enrollmentMetadataId: data.metadata.enrollment_id,
+
+          // Customer fields
           customerEmail: data.customer.email,
           customerName:
             `${data.customer.first_name} ${data.customer.last_name}`.trim(),
           customerCode: data.customer.customer_code,
-          cardLast4: data.authorization.last4,
-          cardType: data.authorization.card_type,
+          customerPhone: data.customer.phone || null,
+
+          // Authorization fields
           authorizationCode: data.authorization.authorization_code,
+          cardBin: data.authorization.bin,
+          cardLast4: data.authorization.last4,
+          cardExpMonth: data.authorization.exp_month,
+          cardExpYear: data.authorization.exp_year,
+          cardType: data.authorization.card_type,
+          cardBank: data.authorization.bank,
+          cardCountryCode: data.authorization.country_code,
+          cardBrand: data.authorization.brand,
+          cardReusable: data.authorization.reusable,
+          cardSignature: data.authorization.signature,
+          cardAccountName: data.authorization.account_name,
+          cardReceiverBankAccountNumber:
+            data.authorization.receiver_bank_account_number,
+          cardReceiverBank: data.authorization.receiver_bank,
         },
       });
 

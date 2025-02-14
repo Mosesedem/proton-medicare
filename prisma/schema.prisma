@@ -66,28 +66,45 @@ model Enrollment {
 }
 
 model Payment {
-  id                Int      @id @default(autoincrement())
-  paystackId        String   @unique
-  reference         String   @unique
-  amount            Float
-  currency          String
-  status            String
-  channel           String
-  paidAt            DateTime
-  createdAt         DateTime
-  metadata          Json
-  authorization     Json
-  userId            Int
-  enrollmentId      Int
-  plan              String
-  planCode          String
-  isSubscription    Boolean
-  customerEmail     String
-  customerName      String
-  customerCode      String
-  cardLast4         String
-  cardType          String
-  authorizationCode String
+  id           Int      @id @default(autoincrement())
+  paystackId   String   @unique
+  reference    String   @unique
+  amount       Float
+  currency     String
+  status       String
+  channel      String
+  paidAt       DateTime
+  createdAt    DateTime
+  userId       Int
+  enrollmentId Int
+
+  // Metadata fields
+  plan                 String
+  planCode             String
+  isSubscription       Boolean
+  enrollmentMetadataId String
+
+  // Customer fields
+  customerEmail String
+  customerName  String
+  customerCode  String
+  customerPhone String?
+
+  // Authorization fields
+  authorizationCode             String
+  cardBin                       String
+  cardLast4                     String
+  cardExpMonth                  String
+  cardExpYear                   String
+  cardType                      String
+  cardBank                      String
+  cardCountryCode               String
+  cardBrand                     String
+  cardReusable                  Boolean
+  cardSignature                 String
+  cardAccountName               String?
+  cardReceiverBankAccountNumber String?
+  cardReceiverBank              String?
 
   user       User       @relation(fields: [userId], references: [id])
   enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
