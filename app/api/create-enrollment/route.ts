@@ -185,7 +185,7 @@ export async function POST(request: Request) {
         headshotPath: headshotUrl,
         userId: user.id,
         status: "PENDING",
-        lastPaymentDate: "",
+        lastPaymentDate: new Date(),
       },
     });
 
