@@ -16,6 +16,8 @@ model User {
   phone                  String?
   phoneNumber            String?
   dateOfBirth            DateTime?
+  gender                 String?
+  address                String?
   password               String
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
@@ -39,29 +41,36 @@ model User {
 }
 
 model Enrollment {
-  id               Int       @id @default(autoincrement())
-  firstName        String
-  lastName         String
-  email            String
-  phone            String
-  dateOfBirth      DateTime
-  maritalStatus    String
-  plan             String
-  duration         String
-  amount           Float
-  paymentStatus    String
-  headshotUrl      String
-  headshotPath     String
-  referral         String?
-  userId           Int
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  planId           String
-  status           String
-  lastPaymentDate  DateTime
-  lastPaymentError String?
-  user             User      @relation(fields: [userId], references: [id])
-  payments         Payment[]
+  id                    Int       @id @default(autoincrement())
+  firstName             String
+  lastName              String
+  email                 String
+  phone                 String
+  gender                String
+  address               String
+  dateOfBirth           DateTime
+  maritalStatus         String
+  plan                  String
+  duration              String
+  amount                Float
+  paymentStatus         String
+  headshotUrl           String
+  headshotPath          String
+  referral              String?
+  userId                Int
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  planId                String
+  status                String
+  lastPaymentDate       DateTime
+  lastPaymentError      String?
+  myCoverSyncStatus     String?
+  myCoverReferenceId    String?
+  myCoverSyncError      String?
+  beneficiaries         String[]
+  numberOfBeneficiaries Int
+  user                  User      @relation(fields: [userId], references: [id])
+  payments              Payment[]
 
   @@map("enrollments")
 }
