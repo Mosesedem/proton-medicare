@@ -1,5 +1,6 @@
+// app/api/create-enrollment/route.ts
+
 import { NextResponse } from "next/server";
-import { initializePaystack } from "@/lib/paystack";
 import { PrismaClient } from "@prisma/client";
 import { plans, durations } from "@/lib/constants";
 import jwt from "jsonwebtoken";
@@ -8,131 +9,164 @@ import { join } from "path";
 
 const prisma = new PrismaClient();
 
-interface EnrollmentRequest {
-  duration: string;
-  plan: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  dob: string;
-  maritalStatus: string;
-  referral: string;
-  headshot?: File;
-}
-
-const JWT_SECRET = process.env.JWT_SECRET as string;
-
 export async function POST(request: Request) {
   try {
-    // Get the JWT from the request headers
     const authHeader = request.headers.get("Authorization");
     if (!authHeader) {
       return NextResponse.json(
-        { success: false, error: "Authentication required" },
+        { success: false, message: "Authorization header missing" },
         { status: 401 },
       );
     }
 
     const token = authHeader.split(" ")[1];
-    const decoded: any = jwt.verify(token, JWT_SECRET);
-
-    if (!decoded?.email) {
+    if (!token) {
       return NextResponse.json(
-        { success: false, error: "Invalid token" },
+        { success: false, message: "Token missing" },
         { status: 401 },
       );
     }
 
-    // Get the user from the database
-    const user = await prisma.user.findUnique({
-      where: { email: decoded.email },
-    });
-
-    if (!user) {
+    let user;
+    try {
+      user = jwt.verify(token, process.env.JWT_SECRET || "") as { id: number };
+      if (!user || !user.id) {
+        return NextResponse.json(
+          { success: false, message: "Invalid token payload" },
+          { status: 401 },
+        );
+      }
+    } catch (jwtError) {
+      console.error("JWT verification failed:", jwtError);
       return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
+        { success: false, message: "Invalid token" },
+        { status: 401 },
       );
     }
 
-    // Handle multipart form data for file upload
     const formData = await request.formData();
-    const data: EnrollmentRequest = {
-      duration: formData.get("duration") as string,
-      plan: formData.get("plan") as string,
-      firstName: formData.get("firstName") as string,
-      lastName: formData.get("lastName") as string,
-      email: formData.get("email") as string,
-      phone: formData.get("phone") as string,
-      dob: formData.get("dob") as string,
-      maritalStatus: formData.get("maritalStatus") as string,
-      referral: formData.get("referral") as string,
-    };
 
-    // Get the headshot file if it exists
-    const headshot = formData.get("headshot") as File | null;
+    // Extract data from formData
+    const firstName = formData.get("firstName") as string;
+    const lastName = formData.get("lastName") as string;
+    const email = formData.get("email") as string;
+    const phone = formData.get("phone") as string;
+    const dob = formData.get("dob") as string;
+    const maritalStatus = formData.get("maritalStatus") as string;
+    const plan = formData.get("plan") as string;
+    const duration = formData.get("duration") as string;
+    const referral = formData.get("referral") as string;
+    const planId = formData.get("planId") as string;
+    const headshot = formData.get("headshot") as File;
 
     // Validate required fields
-    const requiredFields = [
-      "duration",
-      "plan",
-      "firstName",
-      "lastName",
-      "email",
-      "phone",
-      "dob",
-      "maritalStatus",
-      "headshot",
-    ];
-    for (const field of requiredFields) {
-      if (!data[field as keyof EnrollmentRequest] && field !== "headshot") {
-        return NextResponse.json(
-          { success: false, error: `${field} is required` },
-          { status: 400 },
-        );
-      }
-    }
-
-    if (!headshot) {
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !phone ||
+      !dob ||
+      !maritalStatus ||
+      !plan ||
+      !duration ||
+      !headshot ||
+      !planId
+    ) {
       return NextResponse.json(
-        { success: false, error: "Headshot is required" },
+        { success: false, message: "Missing required fields" },
         { status: 400 },
       );
     }
 
     // Handle file upload
+    // Upload headshot to PHP API
     let headshotUrl = "";
-    let headshotPath = "";
-    if (headshot) {
-      const bytes = await headshot.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      headshotPath = join(
-        "public",
-        "uploads",
-        `${Date.now()}_${headshot.name}`,
+    const uploadUrl = process.env.PHP_UPLOAD_ENDPOINT; // Change this to your PHP upload URL
+    if (!uploadUrl) {
+      return NextResponse.json(
+        { success: false, message: "Could not upload image" },
+        { status: 500 },
       );
-      await writeFile(headshotPath, buffer);
-      headshotUrl = headshotPath.replace("public", "");
+    }
+    const uploadFormData = new FormData();
+    uploadFormData.append("file", headshot);
+
+    try {
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      const uploadResult = await uploadResponse.json();
+      if (!uploadResult.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "File upload failed",
+            error: uploadResult.error,
+          },
+          { status: 500 },
+        );
+      }
+
+      headshotUrl = uploadResult.imageUrl;
+    } catch (error) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Error uploading file",
+          error: String(error),
+        },
+        { status: 500 },
+      );
     }
 
-    // Calculate price based on plan and duration using the same logic as frontend
-    const selectedPlan = plans.find((p) => p.name === data.plan);
-    const selectedDuration = durations.find((d) => d.value === data.duration);
+    //Plan and duration validation
+    const planData = plans.find((p) => p.name === plan);
+    const planIdData = plans.find((p) => p.id === planId);
+    const durationData = durations.find((d) => d.value === duration);
 
-    if (!selectedPlan || !selectedDuration) {
+    if (!planData || !durationData) {
       return NextResponse.json(
-        { success: false, error: "Invalid plan or duration" },
+        { success: false, message: "Invalid plan or duration" },
         { status: 400 },
       );
     }
 
-    const basePrice = selectedPlan.basePrice;
-    const duration = parseInt(data.duration);
-    const discountedPrice = basePrice * (1 - selectedDuration.discount);
-    const amount = discountedPrice * duration;
+    const amount = planData.basePrice * (1 - durationData.discount);
 
-    // Save enrollment data using Prisma
+    const data = {
+      firstName,
+      lastName,
+      email,
+      phone,
+      dob,
+      maritalStatus,
+      plan,
+      duration,
+      referral,
+      planId,
+    };
+
+    // Log the data before creating the enrollment
+    console.log("Attempting to create enrollment with data:", {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      dateOfBirth: new Date(data.dob),
+      maritalStatus: data.maritalStatus,
+      referral: data.referral,
+      plan: data.plan,
+      planId: data.planId,
+      duration: String(duration),
+      amount: amount,
+      paymentStatus: "PENDING",
+      headshotUrl,
+      headshotPath: headshotUrl,
+      userId: user.id,
+    });
+
     const enrollment = await prisma.enrollment.create({
       data: {
         firstName: data.firstName,
@@ -143,40 +177,34 @@ export async function POST(request: Request) {
         maritalStatus: data.maritalStatus,
         referral: data.referral,
         plan: data.plan,
+        planId: data.planId,
         duration: String(duration),
         amount: amount,
         paymentStatus: "PENDING",
         headshotUrl,
-        headshotPath,
-        userId: user.id, // Link to the authenticated user
+        headshotPath: headshotUrl,
+        userId: user.id,
       },
     });
 
-    // Initialize Paystack payment
-    const paystack = initializePaystack();
-    const response = await paystack.transaction.initialize({
-      email: data.email,
-      amount: amount * 100, // Convert to kobo
-      callback_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/verify-payment`,
-      metadata: {
-        enrollmentId: enrollment.id,
-        userId: user.id,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        plan: data.plan,
-        duration: data.duration,
-      },
-    });
+    console.log("Enrollment created successfully:", enrollment);
 
     return NextResponse.json({
       success: true,
-      paymentUrl: response.data.authorization_url,
+      message: "Enrollment created successfully",
+      enrollment_id: enrollment.id,
     });
   } catch (error) {
-    console.error("Enrollment error:", error);
+    console.error("Detailed enrollment error:", error);
     return NextResponse.json(
-      { success: false, error: "Enrollment failed" },
+      {
+        success: false,
+        error: "Enrollment failed",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 },
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
