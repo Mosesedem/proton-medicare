@@ -39,44 +39,49 @@ model User {
 }
 
 model Enrollment {
-  id              Int       @id @default(autoincrement())
-  firstName       String
-  lastName        String
-  email           String
-  phone           String
-  dateOfBirth     DateTime
-  maritalStatus   String
-  plan            String
-  duration        String
-  amount          Float
-  paymentStatus   String
-  headshotUrl     String
-  headshotPath    String
-  referral        String?
-  userId          Int
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  planId          String
-  status          String
-  lastPaymentDate DateTime
-  user            User      @relation(fields: [userId], references: [id])
-  payments        Payment[]
+  id               Int       @id @default(autoincrement())
+  firstName        String
+  lastName         String
+  email            String
+  phone            String
+  dateOfBirth      DateTime
+  maritalStatus    String
+  plan             String
+  duration         String
+  amount           Float
+  paymentStatus    String
+  headshotUrl      String
+  headshotPath     String
+  referral         String?
+  userId           Int
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  planId           String
+  status           String
+  lastPaymentDate  DateTime
+  lastPaymentError String?
+  user             User      @relation(fields: [userId], references: [id])
+  payments         Payment[]
 
   @@map("enrollments")
 }
 
 model Payment {
-  id           Int      @id @default(autoincrement())
-  paystackId   String   @unique
-  reference    String   @unique
+  id           Int       @id @default(autoincrement())
+  paystackId   String    @unique
+  reference    String    @unique
   amount       Float
   currency     String
   status       String
   channel      String
-  paidAt       DateTime
+  paidAt       DateTime?
   createdAt    DateTime
   userId       Int
   enrollmentId Int
+
+  // Error details
+  errorMessage    String?
+  gatewayResponse String?
 
   // Metadata fields
   plan                 String
@@ -91,17 +96,17 @@ model Payment {
   customerPhone String?
 
   // Authorization fields
-  authorizationCode             String
-  cardBin                       String
-  cardLast4                     String
-  cardExpMonth                  String
-  cardExpYear                   String
-  cardType                      String
-  cardBank                      String
-  cardCountryCode               String
-  cardBrand                     String
-  cardReusable                  Boolean
-  cardSignature                 String
+  authorizationCode             String?
+  cardBin                       String?
+  cardLast4                     String?
+  cardExpMonth                  String?
+  cardExpYear                   String?
+  cardType                      String?
+  cardBank                      String?
+  cardCountryCode               String?
+  cardBrand                     String?
+  cardReusable                  Boolean @default(false)
+  cardSignature                 String?
   cardAccountName               String?
   cardReceiverBankAccountNumber String?
   cardReceiverBank              String?

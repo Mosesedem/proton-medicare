@@ -30,7 +30,8 @@ export async function POST(request: Request) {
     const payload = JSON.parse(body);
     const { event, data } = payload;
 
-    if (event === "charge.success") {
+    // Handle both successful and failed charges
+    if (event === "charge.success" || event === "charge.failed") {
       // Extract enrollment ID from metadata
       const enrollmentId = parseInt(data.metadata.enrollment_id);
 
@@ -53,10 +54,14 @@ export async function POST(request: Request) {
           currency: data.currency,
           status: data.status,
           channel: data.channel,
-          paidAt: new Date(data.paid_at),
+          paidAt: event === "charge.success" ? new Date(data.paid_at) : null,
           createdAt: new Date(data.created_at),
           userId: enrollment.userId,
           enrollmentId: enrollmentId,
+
+          // Error details (for failed transactions)
+          errorMessage: data.message || null,
+          gatewayResponse: data.gateway_response || null,
 
           // Metadata fields
           plan: data.metadata.plan,
@@ -71,32 +76,35 @@ export async function POST(request: Request) {
           customerCode: data.customer.customer_code,
           customerPhone: data.customer.phone || null,
 
-          // Authorization fields
-          authorizationCode: data.authorization.authorization_code,
-          cardBin: data.authorization.bin,
-          cardLast4: data.authorization.last4,
-          cardExpMonth: data.authorization.exp_month,
-          cardExpYear: data.authorization.exp_year,
-          cardType: data.authorization.card_type,
-          cardBank: data.authorization.bank,
-          cardCountryCode: data.authorization.country_code,
-          cardBrand: data.authorization.brand,
-          cardReusable: data.authorization.reusable,
-          cardSignature: data.authorization.signature,
-          cardAccountName: data.authorization.account_name,
+          // Authorization fields (may be null for failed transactions)
+          authorizationCode: data.authorization?.authorization_code || null,
+          cardBin: data.authorization?.bin || null,
+          cardLast4: data.authorization?.last4 || null,
+          cardExpMonth: data.authorization?.exp_month || null,
+          cardExpYear: data.authorization?.exp_year || null,
+          cardType: data.authorization?.card_type || null,
+          cardBank: data.authorization?.bank || null,
+          cardCountryCode: data.authorization?.country_code || null,
+          cardBrand: data.authorization?.brand || null,
+          cardReusable: data.authorization?.reusable || false,
+          cardSignature: data.authorization?.signature || null,
+          cardAccountName: data.authorization?.account_name || null,
           cardReceiverBankAccountNumber:
-            data.authorization.receiver_bank_account_number,
-          cardReceiverBank: data.authorization.receiver_bank,
+            data.authorization?.receiver_bank_account_number || null,
+          cardReceiverBank: data.authorization?.receiver_bank || null,
         },
       });
 
-      // Update enrollment status
+      // Update enrollment status based on transaction result
       await prisma.enrollment.update({
         where: { id: enrollmentId },
         data: {
-          status: "completed",
-          paymentStatus: "paid",
-          lastPaymentDate: new Date(data.paid_at),
+          status: event === "charge.success" ? "completed" : "payment_failed",
+          paymentStatus: event === "charge.success" ? "paid" : "failed",
+          lastPaymentDate:
+            event === "charge.success" ? new Date(data.paid_at) : undefined,
+          lastPaymentError:
+            event === "charge.failed" ? data.gateway_response : null,
         },
       });
 
