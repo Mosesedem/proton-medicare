@@ -188,6 +188,14 @@ export async function POST(request: Request) {
         userId: user.id,
         status: "PENDING", // Added this field
         lastPaymentDate: new Date(), // Added this field
+        lastPaymentError: null,
+        myCoverSyncStatus: null,
+        myCoverReferenceId: null,
+        myCoverSyncError: null,
+        beneficiaries: [],
+        numberOfBeneficiaries: 0,
+        gender: "UNSPECIFIED", // Adding required field with default value
+        address: "Not provided", // Adding required field with default value
       },
     });
 
