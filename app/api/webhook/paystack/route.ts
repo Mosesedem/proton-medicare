@@ -7,6 +7,37 @@ import { map } from "zod";
 
 const prisma = new PrismaClient();
 
+const DEBUG_LOG_URL = "https://v2.protonmedicare.com/debug/debug.php";
+
+const sendDebugLog = async (
+  headers: Headers,
+  body: string,
+  stage: string,
+  details?: any,
+) => {
+  try {
+    const logData = {
+      timestamp: new Date().toISOString(),
+      stage,
+      headers: {
+        "x-forwarded-for": headers.get("x-forwarded-for") || "",
+        "user-agent": headers.get("user-agent") || "",
+        "x-paystack-signature": headers.get("x-paystack-signature") || "",
+      },
+      body: JSON.parse(body),
+      details,
+    };
+
+    await axios.post(DEBUG_LOG_URL, JSON.stringify(logData), {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  } catch (error) {
+    console.error("Failed to send debug log:", error);
+  }
+};
+
 // Define interfaces for better type safety
 interface PaystackWebhookData {
   id: number;
@@ -199,7 +230,16 @@ export async function POST(request: Request) {
   try {
     const body = await request.text();
 
-    if (!verifySignature(request, body)) {
+    // Log initial request
+    await sendDebugLog(request.headers, body, "request_received");
+
+    // Verify signature and log result
+    const isSignatureValid = verifySignature(request, body);
+    await sendDebugLog(request.headers, body, "signature_verification", {
+      isValid: isSignatureValid,
+    });
+
+    if (!isSignatureValid) {
       return NextResponse.json(
         { success: false, error: "Invalid signature" },
         { status: 401 },
@@ -212,7 +252,16 @@ export async function POST(request: Request) {
       data: PaystackWebhookData;
     };
 
+    // Log parsed payload
+    await sendDebugLog(request.headers, body, "payload_parsed", {
+      event,
+      data,
+    });
+
     if (event !== "charge.success" && event !== "charge.failed") {
+      await sendDebugLog(request.headers, body, "event_ignored", {
+        reason: "Not a relevant event",
+      });
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
@@ -231,12 +280,18 @@ export async function POST(request: Request) {
       },
     });
 
+    // Log enrollment lookup
+    await sendDebugLog(request.headers, body, "enrollment_lookup", {
+      enrollmentId,
+      found: !!enrollment,
+    });
+
     if (!enrollment) {
       throw new Error(`Enrollment not found for ID: ${enrollmentId}`);
     }
 
     // Create payment record
-    await prisma.payment.create({
+    const payment = await prisma.payment.create({
       data: {
         paystackId: data.id.toString(),
         reference: data.reference,
@@ -280,8 +335,11 @@ export async function POST(request: Request) {
       },
     });
 
+    // Log payment creation
+    await sendDebugLog(request.headers, body, "payment_created", { payment });
+
     // Update enrollment status
-    await prisma.enrollment.update({
+    const updatedEnrollment = await prisma.enrollment.update({
       where: { id: enrollmentId },
       data: {
         status: event === "charge.success" ? "completed" : "payment_failed",
@@ -295,20 +353,31 @@ export async function POST(request: Request) {
       },
     });
 
+    // Log enrollment update
+    await sendDebugLog(request.headers, body, "enrollment_updated", {
+      updatedEnrollment,
+    });
+
     if (event === "charge.success") {
       try {
         const myCoverResponse = await syncWithMyCoverAPI(enrollment);
 
-        await prisma.enrollment.update({
+        const syncedEnrollment = await prisma.enrollment.update({
           where: { id: enrollmentId },
           data: {
             myCoverSyncStatus: "success",
             myCoverReferenceId: myCoverResponse.reference_id ?? null,
           },
         });
+
+        // Log successful MyCover sync
+        await sendDebugLog(request.headers, body, "mycover_sync_success", {
+          myCoverResponse,
+          syncedEnrollment,
+        });
       } catch (syncError) {
         console.error("MyCover API sync failed:", syncError);
-        await prisma.enrollment.update({
+        const failedSync = await prisma.enrollment.update({
           where: { id: enrollmentId },
           data: {
             myCoverSyncStatus: "failed",
@@ -318,11 +387,19 @@ export async function POST(request: Request) {
                 : "Unknown error occurred",
           },
         });
+
+        // Log failed MyCover sync
+        await sendDebugLog(request.headers, body, "mycover_sync_failed", {
+          error: syncError,
+          failedSync,
+        });
       }
     }
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
+    // Log any errors
+    await sendDebugLog(request.headers, "error", "webhook_error", { error });
     console.error("Webhook processing error:", error);
     return NextResponse.json(
       { success: false, error: "Webhook processing failed" },
