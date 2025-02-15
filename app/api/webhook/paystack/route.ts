@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { PrismaClient, Enrollment, User } from "@prisma/client";
 import crypto from "crypto";
 import axios from "axios";
+import { plans } from "@/lib/constants";
+import { map } from "zod";
 
 const prisma = new PrismaClient();
 
@@ -71,6 +73,18 @@ const verifySignature = (request: Request, body: string): boolean => {
   return hash === signature;
 };
 
+const planIdData = plans.map((plan) => {
+  return {
+    id: plan.id,
+    name: plan.name,
+    type: plan.type,
+    provider: plan.provider,
+    basePrice: plan.basePrice,
+    description: plan.description,
+    features: plan.features,
+    additionalBenefits: plan.additionalBenefits,
+  };
+});
 // Function to sync enrollment data with MyCover API
 const syncWithMyCoverAPI = async (
   enrollment: EnrichedEnrollment,
@@ -82,8 +96,12 @@ const syncWithMyCoverAPI = async (
   let apiUrl = "";
   let enrollmentData = {};
 
-  switch (enrollment.planId) {
-    case "bastion-health":
+  const selectedPlan = planIdData.find((plan) => plan.id === enrollment.planId);
+  if (!selectedPlan)
+    throw new Error(`Plan not found for ID: ${enrollment.planId}`);
+
+  switch (selectedPlan.provider) {
+    case "bastion":
       apiUrl = "https://api.mycover.ai/products/health/bastion/enroll";
       enrollmentData = {
         first_name: enrollment.firstName,
@@ -98,7 +116,7 @@ const syncWithMyCoverAPI = async (
         product_id: enrollment.planId,
       };
       break;
-    case "hyprime-insurance":
+    case "hygeia":
       apiUrl = "https://api.mycover.ai/products/health/hygeia/enroll";
       enrollmentData = {
         first_name: enrollment.firstName,
@@ -111,7 +129,7 @@ const syncWithMyCoverAPI = async (
         product_id: enrollment.planId,
       };
       break;
-    case "malaria-cover":
+    case "wella":
       apiUrl = "https://api.mycover.ai/products/health/malaria/enroll";
       enrollmentData = {
         first_name: enrollment.firstName,
@@ -128,8 +146,25 @@ const syncWithMyCoverAPI = async (
         product_id: enrollment.planId,
       };
       break;
+    case "proton":
+      apiUrl = "";
+      enrollmentData = {
+        first_name: enrollment.firstName,
+        last_name: enrollment.lastName,
+        email: enrollment.email,
+        phone_number: enrollment.phone,
+        date_of_birth: enrollment.dateOfBirth,
+        gender: enrollment.user.gender,
+        address: enrollment.user.address,
+        image_url: enrollment.headshotUrl,
+        payment_plan: enrollment.duration,
+        number_of_beneficiaries: enrollment.numberOfBeneficiaries,
+        beneficiaries: enrollment.beneficiaries,
+        product_id: enrollment.planId,
+      };
+      break;
     default:
-      throw new Error(`Invalid plan selection: ${enrollment.planId}`);
+      throw new Error(`Invalid plan selection: ${selectedPlan.provider}`);
   }
 
   try {

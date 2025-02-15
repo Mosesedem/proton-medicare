@@ -194,7 +194,7 @@ export async function POST(request: Request) {
         myCoverSyncError: null,
         beneficiaries: [],
         numberOfBeneficiaries: 0,
-        gender: "UNSPECIFIED", // Adding required field with default value
+        gender: "female", // Adding required field with default value
         address: "Not provided", // Adding required field with default value
       },
     });
