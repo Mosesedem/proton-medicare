@@ -158,7 +158,7 @@ const syncWithMyCoverAPI = async (
 
   switch (selectedPlan.provider) {
     case "bastion":
-      apiUrl = "https://api.mycover.ai/products/health/bastion/enroll";
+      apiUrl = "https://api.mycover.ai/v1/products/bastion/buy-health";
       enrollmentData = {
         first_name: enrollment.firstName,
         last_name: enrollment.lastName,
@@ -173,7 +173,7 @@ const syncWithMyCoverAPI = async (
       };
       break;
     case "hygeia":
-      apiUrl = "https://api.mycover.ai/products/health/hygeia/enroll";
+      apiUrl = "https://api.mycover.ai/v1/products/mcg/buy-flexi-care";
       enrollmentData = {
         first_name: enrollment.firstName,
         last_name: enrollment.lastName,
@@ -186,7 +186,7 @@ const syncWithMyCoverAPI = async (
       };
       break;
     case "wella":
-      apiUrl = "https://api.mycover.ai/products/health/malaria/enroll";
+      apiUrl = "https://api.mycover.ai/v1/products/wella/buy-health-malaria";
       enrollmentData = {
         first_name: enrollment.firstName,
         last_name: enrollment.lastName,
