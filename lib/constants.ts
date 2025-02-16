@@ -313,7 +313,12 @@ export const durations = [
 ];
 
 export const maritalStatus = [
-  { id: 1, label: "Single", value: "single" },
-  { id: 2, label: "Married", value: "married" },
-  { id: 3, label: "Widowed", value: "widowed" },
+  { id: 1, label: "Single", value: "Single" },
+  { id: 2, label: "Married", value: "Married" },
+  { id: 3, label: "Other", value: "Single" },
+];
+
+export const gender = [
+  { id: 1, label: "Male", value: "Single" },
+  { id: 2, label: "Female", value: "Married" },
 ];

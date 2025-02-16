@@ -164,11 +164,11 @@ const syncWithMyCoverAPI = async (
         last_name: enrollment.lastName,
         email: enrollment.email,
         phone_number: enrollment.phone,
-        gender: enrollment.user.gender,
+        gender: enrollment.gender,
         marital_status: enrollment.maritalStatus,
         image_url: enrollment.headshotUrl,
         date_of_birth: enrollment.dateOfBirth,
-        payment_plan: enrollment.duration,
+        payment_plan: 1,
         product_id: enrollment.planId,
       };
       break;
@@ -179,10 +179,12 @@ const syncWithMyCoverAPI = async (
         last_name: enrollment.lastName,
         email: enrollment.email,
         phone: enrollment.phone,
-        gender: enrollment.user.gender,
+        gender: enrollment.gender,
         dob: enrollment.dateOfBirth,
         image_url: enrollment.headshotUrl,
         product_id: enrollment.planId,
+        payment_plan: 1,
+        marital_status: enrollment.maritalStatus,
       };
       break;
     case "wella":
@@ -193,10 +195,10 @@ const syncWithMyCoverAPI = async (
         email: enrollment.email,
         phone_number: enrollment.phone,
         date_of_birth: enrollment.dateOfBirth,
-        gender: enrollment.user.gender,
+        gender: enrollment.gender,
         address: enrollment.user.address,
         image_url: enrollment.headshotUrl,
-        payment_plan: enrollment.duration,
+        payment_plan: 1,
         number_of_beneficiaries: enrollment.numberOfBeneficiaries,
         beneficiaries: enrollment.beneficiaries,
         product_id: enrollment.planId,

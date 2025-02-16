@@ -12,6 +12,7 @@ export interface FormData {
   phone: string;
   dob: string;
   maritalStatus: string;
+  gender: string;
   referral: string;
   headshot: File | null;
 }
@@ -28,6 +29,7 @@ export function useEnrollmentForm() {
     dob: "",
     referral: "",
     maritalStatus: "",
+    gender: "",
     headshot: null,
   });
 

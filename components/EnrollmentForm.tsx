@@ -176,6 +176,7 @@ export default function EnrollmentForm() {
       headshot: null,
       dob: "",
       maritalStatus: "",
+      gender: "",
       plan: "",
       duration: "",
       referral: "",
@@ -242,10 +243,15 @@ export default function EnrollmentForm() {
   };
 
   const validateStep2 = (formData: any) => {
-    const { plan, duration, maritalStatus, headshot, dob } = formData;
+    const { plan, duration, maritalStatus, headshot, dob, gender } = formData;
 
     if (!plan) {
       toast.error("Plan is required.");
+      return false;
+    }
+
+    if (!gender) {
+      toast.error("Select your Gender");
       return false;
     }
 

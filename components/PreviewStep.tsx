@@ -6,6 +6,7 @@ interface PreviewStepProps {
     phone: string;
     dob: string;
     maritalStatus: string;
+    gender: string;
     plan: string;
     duration: string;
     referral: string;
@@ -33,6 +34,9 @@ export function PreviewStep({ formData, previewImage }: PreviewStepProps) {
           </p>
           <p>
             <strong>Marital Status:</strong> {formData.maritalStatus}
+          </p>
+          <p>
+            <strong>Gender:</strong> {formData.gender}
           </p>
           <p>
             <strong>Plan:</strong> {formData.plan}

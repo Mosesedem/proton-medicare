@@ -46,7 +46,7 @@ model Enrollment {
   lastName              String
   email                 String
   phone                 String
-  gender                String
+  gender                String    @default("Female")
   address               String
   dateOfBirth           DateTime
   maritalStatus         String

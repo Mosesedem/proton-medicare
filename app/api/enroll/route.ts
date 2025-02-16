@@ -53,6 +53,7 @@ export async function POST(request: Request) {
     const phone = formData.get("phone") as string;
     const dob = formData.get("dob") as string;
     const maritalStatus = formData.get("maritalStatus") as string;
+    const gender = formData.get("gender") as string;
     const plan = formData.get("plan") as string;
     const duration = formData.get("duration") as string;
     const referral = formData.get("referral") as string;
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
       !phone ||
       !dob ||
       !maritalStatus ||
+      !gender ||
       !plan ||
       !duration ||
       !headshot ||
@@ -142,6 +144,7 @@ export async function POST(request: Request) {
       phone,
       dob,
       maritalStatus,
+      gender,
       plan,
       duration,
       referral,
@@ -156,6 +159,7 @@ export async function POST(request: Request) {
       phone: data.phone,
       dateOfBirth: new Date(data.dob),
       maritalStatus: data.maritalStatus,
+      gender: data.gender,
       referral: data.referral,
       plan: data.plan,
       planId: data.planId,
@@ -165,8 +169,15 @@ export async function POST(request: Request) {
       headshotUrl,
       headshotPath: headshotUrl,
       userId: user.id,
-      status: "PENDING",
-      lastPaymentDate: new Date(),
+      status: "PENDING", // Added this field
+      lastPaymentDate: new Date(), // Added this field
+      lastPaymentError: null,
+      myCoverSyncStatus: null,
+      myCoverReferenceId: null,
+      myCoverSyncError: null,
+      beneficiaries: [],
+      numberOfBeneficiaries: 0,
+      address: "Not provided", // Adding required field with default value
     });
 
     const enrollment = await prisma.enrollment.create({
@@ -177,6 +188,7 @@ export async function POST(request: Request) {
         phone: data.phone,
         dateOfBirth: new Date(data.dob),
         maritalStatus: data.maritalStatus,
+        gender: data.gender,
         referral: data.referral,
         plan: data.plan,
         planId: data.planId,
@@ -194,7 +206,6 @@ export async function POST(request: Request) {
         myCoverSyncError: null,
         beneficiaries: [],
         numberOfBeneficiaries: 0,
-        gender: "UNSPECIFIED", // Adding required field with default value
         address: "Not provided", // Adding required field with default value
       },
     });

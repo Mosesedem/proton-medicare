@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RefreshCw } from "lucide-react";
+import { Radio, RefreshCw } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -13,13 +13,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { maritalStatus, plans, durations } from "@/lib/constants";
+import { maritalStatus, plans, durations, gender } from "@/lib/constants";
 import { PlanSelectionModal } from "./PlanSelectionModal";
 
 interface AdditionalInfoStepProps {
   formData: {
     dob: string;
     maritalStatus: string;
+    gender: string;
     plan: string;
     planId: string;
     duration: string;
@@ -164,6 +165,26 @@ export function AdditionalInfoStep({
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="gender">Gender</Label>
+          <div className="flex flex-col space-y-1">
+            {" "}
+            {/* Added a container for better layout */}
+            {gender.map((status) => (
+              <label key={status.id} className="inline-flex items-center">
+                <input
+                  type="radio"
+                  name="gender" // Important: All radio buttons in the group must have the same name
+                  value={status.value}
+                  checked={formData.gender === status.value} // Check the correct radio button
+                  onChange={(e) => handleSelectChange("gender", e.target.value)} // Update state on change
+                  className="mr-2" // Add some spacing
+                />
+                <span>{status.label}</span>
+              </label>
+            ))}
+          </div>
         </div>
       </div>
 
