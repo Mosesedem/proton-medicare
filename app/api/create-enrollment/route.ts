@@ -151,13 +151,22 @@ export async function POST(request: Request) {
       planId,
     };
 
+    const convertDateToStandard = (date: Date) => {
+      const year = date.getUTCFullYear();
+      const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(date.getUTCDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
+    const formattedDateOfBirth = convertDateToStandard(new Date(data.dob));
+
     // Log the data before creating the enrollment
     console.log("Attempting to create enrollment with data:", {
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
       phone: data.phone,
-      dateOfBirth: new Date(data.dob),
+      dateOfBirth: formattedDateOfBirth,
       maritalStatus: data.maritalStatus,
       gender: data.gender,
       referral: data.referral,

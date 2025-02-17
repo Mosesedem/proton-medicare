@@ -33,7 +33,7 @@ model User {
   resetPin               String?
   resetPinExpiry         DateTime?
   resetAttempts          Int          @default(0)
-  passwordUpdtaedAt      DateTime?
+  passwordUpdatedAt      DateTime?
   enrollments            Enrollment[]
   payments               Payment[]
 
