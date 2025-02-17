@@ -193,7 +193,6 @@ const syncWithMyCoverAPI = async (
         image_url: enrollment.headshotUrl,
         product_id: enrollment.planId,
         payment_plan: 1,
-        marital_status: enrollment.maritalStatus,
       };
       break;
     case "wella":
