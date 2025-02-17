@@ -207,15 +207,16 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section className="relative w-full overflow-hidden py-8 sm:py-12 lg:py-24">
+      <section className="relative w-full overflow-hidden py-12 sm:py-16 lg:py-24">
+        {/* Background Gradient */}
         <div
-          className="absolute inset-0 bg-[linear-gradient(109.6deg,rgba(102,175,163,0.6)_11.2%,rgba(147,197,214,0.6)_91.1%)]"
+          className="from-text-secondary absolute inset-0 bg-accent/10"
           style={{
             clipPath: "polygon(0 0, 100% 0, 100% 85%, 0% 100%)",
           }}
         />
-        <div className="container relative px-4 md:px-6">
-          <div className="grid items-center gap-8 md:grid-cols-2 lg:gap-12">
+        <div className="container relative px-6 md:px-12">
+          <div className="grid items-center gap-10 md:grid-cols-2 lg:gap-16">
             {/* Left Content */}
             <motion.div
               className="space-y-6"
@@ -225,15 +226,19 @@ export default function Home() {
               viewport={{ once: true }}
             >
               <div className="space-y-4">
-                <h2 className="bg-gradient-to-r from-blue-500 via-teal-500 to-blue-500 bg-clip-text text-3xl font-bold tracking-tighter text-transparent sm:text-4xl lg:text-5xl">
+                <h2 className="bg-gradient-to-r from-teal-400 via-teal-500 to-teal-600 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl lg:text-6xl">
                   Medicare Simplified, Coverage Personalized
                 </h2>
-                <p className="text-lg font-medium leading-relaxed text-gray-700">
-                  At Proton Medicare, we are reimagining healthcare navigation.
-                  We transform complex insurance landscapes into clear,
-                  personalized paths that empower your health journey.
+                <p className="text-lg font-medium leading-relaxed text-primary/80">
+                  At{" "}
+                  <span className="font-semibold text-teal-400">
+                    Proton Medicare
+                  </span>
+                  , we simplify complex healthcare processes, giving you clear,
+                  personalized coverage options to empower your health journey.
                 </p>
               </div>
+              {/* Features Section */}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-2">
                 {[
                   { icon: ShieldCheck, text: "Comprehensive Protection" },
@@ -243,19 +248,18 @@ export default function Home() {
                 ].map(({ icon: Icon, text }, index) => (
                   <div
                     key={index}
-                    className="group flex transform items-center space-x-3 transition-transform duration-300 hover:scale-105"
+                    className="group flex items-center space-x-3 transition-transform duration-300 hover:scale-105"
                   >
-                    <div className="rounded-xl bg-blue-50 p-2.5 transition-colors group-hover:bg-blue-100">
-                      <Icon className="h-6 w-6 text-blue-600 transition-colors group-hover:text-blue-700" />
+                    <div className="rounded-xl bg-teal-500/10 p-2.5 transition-colors group-hover:bg-teal-500/20">
+                      <Icon className="h-6 w-6 text-teal-400 transition-colors group-hover:text-teal-300" />
                     </div>
-                    <span className="cursor-pointer text-sm font-semibold text-gray-800 transition-colors group-hover:text-slate-600/100 sm:text-base">
+                    <span className="cursor-pointer text-sm font-semibold text-primary/90 transition-colors group-hover:text-primary/40 sm:text-base">
                       {text}
                     </span>
                   </div>
                 ))}
               </div>
             </motion.div>
-
             {/* Right Image */}
             <motion.div
               className="relative mt-8 md:mt-0"
@@ -274,16 +278,16 @@ export default function Home() {
                   objectFit="cover"
                   className="h-[250px] w-full object-cover transition-transform duration-300 group-hover:scale-105 sm:h-[300px] lg:h-[400px]"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/50 to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4 rounded-xl bg-white/80 p-4 shadow-lg backdrop-blur-sm">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4 rounded-xl bg-white/90 p-4 shadow-lg backdrop-blur-sm">
                   <p className="text-sm font-medium text-gray-800">
-                    Your health, your choice, our mission
+                    Your health, your choice, our mission.
                   </p>
                 </div>
               </div>
-              {/* Decorative elements */}
-              <div className="absolute -right-4 -top-4 -z-10 h-48 w-48 rounded-full bg-blue-200/20 blur-2xl sm:h-72 sm:w-72" />
-              <div className="absolute -bottom-4 -left-4 -z-10 h-48 w-48 rounded-full bg-teal-200/20 blur-2xl sm:h-72 sm:w-72" />
+              {/* Decorative Elements */}
+              <div className="absolute -right-6 -top-6 -z-10 h-48 w-48 rounded-full bg-teal-400/30 blur-3xl sm:h-72 sm:w-72" />
+              <div className="absolute -bottom-6 -left-6 -z-10 h-48 w-48 rounded-full bg-teal-600/30 blur-3xl sm:h-72 sm:w-72" />
             </motion.div>
           </div>
         </div>
@@ -394,14 +398,18 @@ export default function Home() {
 
           <Carousel
             opts={{
-              align: "start",
+              align: "center",
               loop: true,
+              containScroll: "trimSnaps",
             }}
             className="mx-auto w-full max-w-5xl"
           >
             <CarouselContent>
               {shuffledPlans.map((plan, index) => (
-                <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
+                <CarouselItem
+                  key={index}
+                  className="sm:basis-full md:basis-1/2 lg:basis-1/3"
+                >
                   <div className="p-2">
                     <PlanCard
                       name={plan.name}
@@ -414,6 +422,7 @@ export default function Home() {
                 </CarouselItem>
               ))}
             </CarouselContent>
+
             <div className="hidden md:block">
               <CarouselPrevious className="absolute -left-12 top-1/2" />
               <CarouselNext className="absolute -right-12 top-1/2" />
