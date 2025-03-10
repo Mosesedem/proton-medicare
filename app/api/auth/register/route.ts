@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { type NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
@@ -30,7 +29,7 @@ const registerSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(
       /[^A-Za-z0-9]/,
-      "Password must contain at least one special character"
+      "Password must contain at least one special character",
     ),
 });
 
@@ -135,7 +134,7 @@ function getEmailTemplate(firstName: string, verificationLink: string) {
 async function sendVerificationEmail(
   email: string,
   firstName: string,
-  verificationToken: string
+  verificationToken: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (!process.env.NEXT_PUBLIC_APP_URL) {
@@ -145,7 +144,7 @@ async function sendVerificationEmail(
     const verificationLink = `${
       process.env.NEXT_PUBLIC_APP_URL
     }/verify?token=${encodeURIComponent(
-      verificationToken
+      verificationToken,
     )}&email=${encodeURIComponent(email)}`;
 
     const { error } = await resend.emails.send({
@@ -192,13 +191,13 @@ export async function POST(request: NextRequest) {
     if (existingEmail) {
       return NextResponse.json(
         { success: false, message: "Email already registered" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (existingPhone) {
       return NextResponse.json(
         { success: false, message: "Phone number already registered" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -226,7 +225,7 @@ export async function POST(request: NextRequest) {
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "7d" },
     );
 
     // Set cookie
@@ -245,7 +244,7 @@ export async function POST(request: NextRequest) {
     const emailResult = await sendVerificationEmail(
       user.email,
       user.firstName!,
-      verificationToken
+      verificationToken,
     );
 
     return NextResponse.json({
@@ -270,7 +269,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, message: error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -281,18 +280,18 @@ export async function POST(request: NextRequest) {
             success: false,
             message: "Email or phone number already registered",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
       return NextResponse.json(
         { success: false, message: error.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     return NextResponse.json(
       { success: false, message: "An unexpected error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   } finally {
     await prisma.$disconnect();

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // components/dashboard/columns.tsx
 "use client";
 
@@ -129,7 +128,7 @@ const CellActions = ({ row }: { row: any }) => {
         <DialogContent className="max-w-4xl">
           <iframe
             src={plan.hospitalListUrl}
-            className="w-full h-[500px]"
+            className="h-[500px] w-full"
             title="Hospital List"
           />
         </DialogContent>

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // app/api/activate-plan/[enrollmentId]/route.ts
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
@@ -77,7 +76,7 @@ const httpsRequest = async <T>(
   url: string,
   method: string,
   data: any,
-  headers: Record<string, string>
+  headers: Record<string, string>,
 ): Promise<{ status: number; data: T }> => {
   const parsedUrl = new URL(url);
 
@@ -136,7 +135,7 @@ const httpsRequest = async <T>(
 };
 
 const syncWithMyCoverAPI = async (
-  enrollment: any
+  enrollment: any,
 ): Promise<MyCoverResponse> => {
   if (!process.env.MYCOVER_API_KEY) {
     const error = new Error("MYCOVER_API_KEY is not configured");
@@ -259,7 +258,7 @@ const syncWithMyCoverAPI = async (
       break;
     default:
       const error = new Error(
-        `Invalid plan provider: ${selectedPlan.provider}`
+        `Invalid plan provider: ${selectedPlan.provider}`,
       );
       await sendLogToPhp({
         level: "ERROR",
@@ -297,7 +296,7 @@ const syncWithMyCoverAPI = async (
       enrollmentData,
       {
         Authorization: `Bearer ${process.env.MYCOVER_API_KEY}`,
-      }
+      },
     );
 
     // Updated to accept both 200 and 201 status codes
@@ -488,7 +487,7 @@ const createOrUpdateHealthPlan = async (enrollment: any) => {
 // Fixed POST handler with proper typing and params awaiting
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ enrollmentId: string }> }
+  { params }: { params: Promise<{ enrollmentId: string }> },
 ) {
   const resolvedParams = await params; // Await the params promise
   const requestId = `req_${Date.now()}_${Math.random()
@@ -537,7 +536,7 @@ export async function POST(
             code: "ALREADY_ACTIVE",
             healthPlan: healthPlanCheck.plan,
           },
-          { status: 409 }
+          { status: 409 },
         );
       } else if (healthPlanCheck.status === "pending") {
         await sendLogToPhp({
@@ -554,7 +553,7 @@ export async function POST(
             code: "ACTIVATION_IN_PROGRESS",
             healthPlan: healthPlanCheck.plan,
           },
-          { status: 202 }
+          { status: 202 },
         );
       }
     }
@@ -583,7 +582,7 @@ export async function POST(
       });
       return NextResponse.json(
         { success: false, error: "Enrollment not found", code: "NOT_FOUND" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -606,7 +605,7 @@ export async function POST(
             paymentStatus: enrollment.paymentStatus,
           },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -688,7 +687,7 @@ export async function POST(
           details: errorDetails,
           healthPlan: healthPlan,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -729,7 +728,7 @@ export async function POST(
         code: "ACTIVATION_FAILED",
         details: errorDetails,
       },
-      { status: 500 }
+      { status: 500 },
     );
   } finally {
     await sendLogToPhp({

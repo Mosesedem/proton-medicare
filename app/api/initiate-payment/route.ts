@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     if (!enrollment) {
       return NextResponse.json(
         { success: false, message: "Enrollment not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -100,7 +100,6 @@ export async function POST(request: Request) {
         },
         reference: reference,
         amount: 0,
-        name: "",
       });
 
       if (!transactionResponse.status || !transactionResponse.data) {
@@ -148,7 +147,7 @@ export async function POST(request: Request) {
           success: false,
           message: `Invalid payment type: ${paymentType}. Must be 'subscription' or 'one-time'`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
   } catch (error) {
@@ -159,7 +158,7 @@ export async function POST(request: Request) {
         message: "Failed to initiate payment",
         error: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   } finally {
     await prisma.$disconnect();

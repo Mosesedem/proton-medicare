@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.findUnique({ where: { email } });
 
-    if (!user || !bcrypt.compareSync(password, user.password)) {
+    if (!user || !bcrypt.compareSync(password, user.password as string)) {
       return NextResponse.json(
         { success: false, message: "Invalid email or password" },
         { status: 401 },

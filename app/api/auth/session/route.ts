@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../[...nextauth]/auth.config";
@@ -63,7 +62,7 @@ export async function GET(req: NextRequest) {
         if (!user) {
           return NextResponse.json(
             { success: false, message: "User not found" },
-            { status: 404 }
+            { status: 404 },
           );
         }
 
@@ -85,7 +84,7 @@ export async function GET(req: NextRequest) {
         console.error("JWT verification error:", jwtError);
         return NextResponse.json(
           { success: false, message: "Invalid or expired token" },
-          { status: 401 }
+          { status: 401 },
         );
       }
     }
@@ -93,13 +92,13 @@ export async function GET(req: NextRequest) {
     // No session found
     return NextResponse.json(
       { success: false, message: "Not authenticated" },
-      { status: 401 }
+      { status: 401 },
     );
   } catch (error) {
     console.error("Session error:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   } finally {
     await prisma.$disconnect();

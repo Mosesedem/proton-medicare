@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // components/EmailVerificationForm.tsx
 "use client";
 

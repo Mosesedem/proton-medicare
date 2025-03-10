@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
@@ -9,7 +8,7 @@ export default function VerifyClient() {
   const router = useRouter();
   const [message, setMessage] = useState("Verifying your account...");
   const [status, setStatus] = useState<"loading" | "success" | "error">(
-    "loading"
+    "loading",
   );
 
   useEffect(() => {
@@ -25,7 +24,7 @@ export default function VerifyClient() {
     const verifyAccount = async () => {
       try {
         const response = await fetch(
-          `/api/verify?token=${token}&email=${email}`
+          `/api/verify?token=${token}&email=${email}`,
         );
         const data = await response.json();
 

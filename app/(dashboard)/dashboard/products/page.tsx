@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import { PlanCard } from "@/components/dashboard/PlanCard";
 import { useRef, useState, useEffect } from "react";
@@ -76,7 +75,7 @@ function HorizontalScrollSection({
 
   return (
     <section className="relative">
-      <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center md:text-left">
+      <h2 className="mb-6 text-center text-2xl font-bold md:text-left md:text-3xl">
         {title}
       </h2>
 
@@ -84,10 +83,10 @@ function HorizontalScrollSection({
       {showLeftButton && (
         <button
           onClick={() => scroll("left")}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-gray-100 rounded-full p-2 shadow-lg transition"
+          className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg transition hover:bg-gray-100"
           aria-label="Scroll left"
         >
-          <ChevronLeftIcon className="h-6 w-6 md:h-8 md:w-8 text-gray-600" />
+          <ChevronLeftIcon className="h-6 w-6 text-gray-600 md:h-8 md:w-8" />
         </button>
       )}
 
@@ -95,22 +94,22 @@ function HorizontalScrollSection({
       {showRightButton && (
         <button
           onClick={() => scroll("right")}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-gray-100 rounded-full p-2 shadow-lg transition"
+          className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg transition hover:bg-gray-100"
           aria-label="Scroll right"
         >
-          <ChevronRightIcon className="h-6 w-6 md:h-8 md:w-8 text-gray-600" />
+          <ChevronRightIcon className="h-6 w-6 text-gray-600 md:h-8 md:w-8" />
         </button>
       )}
 
       <div className="relative overflow-hidden px-2">
         <div
           ref={scrollContainerRef}
-          className="py-4 flex space-x-4 overflow-x-scroll scrollbar-hide scroll-smooth snap-x"
+          className="scrollbar-hide flex snap-x space-x-4 overflow-x-scroll scroll-smooth py-4"
         >
           {filteredPlans.map((plan) => (
             <div
               key={plan.id}
-              className="flex-shrink-0 w-full max-w-xs md:max-w-sm mx-auto snap-center"
+              className="mx-auto w-full max-w-xs flex-shrink-0 snap-center md:max-w-sm"
             >
               <PlanCard
                 name={plan.name}
@@ -157,7 +156,7 @@ export default function PlansPage() {
         ...plan.features,
         ...plan.additionalBenefits,
         plan.basePrice.toString(),
-      ].some((field) => field.toLowerCase().includes(normalizedTerm))
+      ].some((field) => field.toLowerCase().includes(normalizedTerm)),
     );
 
     setSearchResults(results);
@@ -221,19 +220,19 @@ export default function PlansPage() {
     <main className="min-h-screen bg-gradient-to-b from-teal-800 to-teal-100">
       {/* Hero section */}
       <div className="container mx-auto px-4 py-12 md:py-20">
-        <div className="grid md:grid-cols-2 gap-8 items-center">
+        <div className="grid items-center gap-8 md:grid-cols-2">
           <div className="space-y-4 text-center md:text-left">
-            <h1 className="text-3xl md:text-4xl lg:text-6xl font-bold text-white leading-tight mt-10">
+            <h1 className="mt-10 text-3xl font-bold leading-tight text-white md:text-4xl lg:text-6xl">
               Find care providers by plan
             </h1>
-            <p className="text-lg md:text-xl text-blue-100 max-w-md mx-auto md:mx-0">
+            <p className="mx-auto max-w-md text-lg text-blue-100 md:mx-0 md:text-xl">
               Select your Proton Medicare plan to view available healthcare
               providers in your network.
             </p>
           </div>
-          <div className="hidden md:flex justify-center lg:justify-end">
+          <div className="hidden justify-center md:flex lg:justify-end">
             <div className="relative">
-              <div className="absolute inset-0 bg-blue-500/20 rounded-xl blur-2xl" />
+              <div className="absolute inset-0 rounded-xl bg-blue-500/20 blur-2xl" />
               <Image
                 src="https://www.etegram.com/pages/homepage/Unlock-Unimaginable-Payment.svg"
                 alt="Medical facility illustration"
@@ -248,14 +247,14 @@ export default function PlansPage() {
       </div>
 
       {/* Search bar */}
-      <div className="container mx-auto px-4 -mt-6 mb-8">
-        <div className="bg-teal-500 rounded-lg shadow-lg p-4 max-w-2xl mx-auto">
+      <div className="container mx-auto -mt-6 mb-8 px-4">
+        <div className="mx-auto max-w-2xl rounded-lg bg-teal-500 p-4 shadow-lg">
           <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <SearchIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
             <Input
               type="text"
               placeholder="Search plans by name, provider, features or price..."
-              className="pl-10 py-6 w-full bg-secondary text-primary"
+              className="w-full bg-secondary py-6 pl-10 text-primary"
               value={searchTerm}
               onChange={handleSearchChange}
             />
@@ -264,7 +263,7 @@ export default function PlansPage() {
       </div>
 
       {/* Plans sections */}
-      <div className="container bg-background mx-auto px-4 py-8 space-y-12 rounded-t-3xl">
+      <div className="container mx-auto space-y-12 rounded-t-3xl bg-background px-4 py-8">
         {isSearching ? (
           searchResults.length > 0 ? (
             <HorizontalScrollSection
@@ -272,7 +271,7 @@ export default function PlansPage() {
               filteredPlans={searchResults}
             />
           ) : (
-            <div className="text-center py-12">
+            <div className="py-12 text-center">
               <h3 className="text-2xl font-medium text-gray-600">
                 No plans match your search
               </h3>

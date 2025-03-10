@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DollarSign } from "lucide-react";
@@ -24,7 +30,7 @@ export function WalletCard({ balance, onBalanceChange }: WalletCardProps) {
       toast({
         title: "Invalid amount",
         description: "Please enter a valid positive number",
-        variant: "destructive",
+        // variant: "destructive",
       });
       return;
     }
@@ -33,7 +39,7 @@ export function WalletCard({ balance, onBalanceChange }: WalletCardProps) {
     setCurrentBalance(newBalance);
     onBalanceChange?.(newBalance); // Call the callback if provided
     setAmount("");
-    
+
     toast({
       title: "Funds added successfully",
       description: `$${Number(amount).toFixed(2)} has been added to your wallet`,
@@ -55,12 +61,16 @@ export function WalletCard({ balance, onBalanceChange }: WalletCardProps) {
           <DollarSign className="h-6 w-6" />
           Wallet Balance
         </CardTitle>
-        <CardDescription>Manage your account balance and transactions</CardDescription>
+        <CardDescription>
+          Manage your account balance and transactions
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-lg">
+        <div className="rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 p-6">
           <p className="text-sm text-muted-foreground">Available Balance</p>
-          <p className="text-3xl font-bold text-blue-600">${currentBalance.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-blue-600">
+            ${currentBalance.toFixed(2)}
+          </p>
         </div>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -76,8 +86,8 @@ export function WalletCard({ balance, onBalanceChange }: WalletCardProps) {
                 onChange={handleAmountChange}
                 className="flex-1"
               />
-              <Button 
-                onClick={handleAddFunds} 
+              <Button
+                onClick={handleAddFunds}
                 disabled={!amount || Number(amount) <= 0}
                 className="whitespace-nowrap"
               >

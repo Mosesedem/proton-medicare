@@ -198,13 +198,20 @@ async function updateEmail(formData: FormData) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: parseInt(decoded.id) },
+      where: { id: decoded.id },
     });
 
     if (!user) {
       return {
         success: false,
         message: "User not found",
+      };
+    }
+
+    if (!parse.data.password || !user.password) {
+      return {
+        success: false,
+        message: "Password is required",
       };
     }
 
@@ -221,7 +228,7 @@ async function updateEmail(formData: FormData) {
     const existingUser = await prisma.user.findFirst({
       where: {
         email: normalizedEmail,
-        id: { not: parseInt(decoded.id) },
+        id: { not: decoded.id },
       },
     });
 
@@ -235,7 +242,7 @@ async function updateEmail(formData: FormData) {
     const verificationDetails = generateVerificationDetails();
 
     await prisma.user.update({
-      where: { id: parseInt(decoded.id) },
+      where: { id: decoded.id },
       data: {
         email: normalizedEmail,
         isVerified: false,
