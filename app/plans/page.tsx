@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import { PlanCard } from "@/components/dashboard/PlanCard";
 import { useRef, useState, useEffect } from "react";
