@@ -30,7 +30,7 @@ export default function VerifyEmailClient() {
   };
 
   return (
-    <div className="container mx-auto flex min-h-screen items-center justify-center p-4">
+    <div className="mx-auto flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-center text-2xl">

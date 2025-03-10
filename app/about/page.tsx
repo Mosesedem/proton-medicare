@@ -47,7 +47,7 @@ export default function AboutPage() {
       </section>
 
       <section className="px-4 py-24">
-        <div className="container mx-auto max-w-6xl">
+        <div className="mx-auto max-w-6xl">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -108,7 +108,7 @@ export default function AboutPage() {
       </section>
 
       <section className="bg-accent/5 py-24">
-        <div className="container mx-auto max-w-6xl px-4">
+        <div className="mx-auto max-w-6xl px-4">
           <div className="grid items-center gap-12 md:grid-cols-2">
             <motion.div
               initial={{ opacity: 0, x: -20 }}

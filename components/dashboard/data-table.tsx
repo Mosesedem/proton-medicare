@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import {
@@ -105,7 +104,7 @@ export function DataTable<TData extends HealthPlan>({
   // Handle row click for details, ensuring it doesn't interfere with action menu
   const handleRowClick = (
     enrollment: HealthPlan,
-    event: React.MouseEvent<HTMLElement>
+    event: React.MouseEvent<HTMLElement>,
   ) => {
     const target = event.target as HTMLElement;
     // Ignore clicks originating from the action menu
@@ -120,7 +119,7 @@ export function DataTable<TData extends HealthPlan>({
   const handleActionClick = (
     event: React.MouseEvent,
     enrollment: HealthPlan,
-    dialog: "image" | "hospital" | "details"
+    dialog: "image" | "hospital" | "details",
   ) => {
     event.stopPropagation(); // Stop the row click event from firing
     setSelectedEnrollment(enrollment);
@@ -139,7 +138,7 @@ export function DataTable<TData extends HealthPlan>({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="h-8 w-8 p-0 action-menu"
+                className="action-menu h-8 w-8 p-0"
                 onClick={(e) => e.stopPropagation()} // Stop propagation here too
               >
                 <MoreHorizontal className="h-4 w-4" />
@@ -229,10 +228,10 @@ export function DataTable<TData extends HealthPlan>({
         paginatedRows.map((row) => (
           <div
             key={row.id}
-            className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer bg-primary-foreground"
+            className="cursor-pointer rounded-lg border bg-primary-foreground p-4 shadow-sm transition-shadow hover:shadow-md"
             onClick={(e) => handleRowClick(row.original, e)}
           >
-            <div className="flex justify-between items-center mb-2">
+            <div className="mb-2 flex items-center justify-between">
               <h3 className="font-medium text-teal-700">
                 {row.getValue("firstName")} {row.getValue("lastName")}
               </h3>
@@ -240,7 +239,7 @@ export function DataTable<TData extends HealthPlan>({
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="h-8 w-8 p-0 action-menu"
+                    className="action-menu h-8 w-8 p-0"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="h-4 w-4" />
@@ -272,7 +271,7 @@ export function DataTable<TData extends HealthPlan>({
             </div>
             <div className="grid grid-cols-2 gap-y-2 text-sm">
               <span className="text-gray-500">Email:</span>
-              <span className="font-medium text-teal-700 overflow-hidden w-30 whitespace-nowrap text-ellipsis">
+              <span className="w-30 overflow-hidden text-ellipsis whitespace-nowrap font-medium text-teal-700">
                 {row.getValue("email")}
               </span>
               <span className="text-gray-500">HMO ID:</span>
@@ -297,7 +296,7 @@ export function DataTable<TData extends HealthPlan>({
           </div>
         ))
       ) : (
-        <div className="text-center p-8 text-gray-500">No results found.</div>
+        <div className="p-8 text-center text-gray-500">No results found.</div>
       )}
     </div>
     // <p>Mobile view</p>
@@ -309,22 +308,22 @@ export function DataTable<TData extends HealthPlan>({
   const startRow = pagination.pageIndex * pagination.pageSize + 1;
   const endRow = Math.min(
     (pagination.pageIndex + 1) * pagination.pageSize,
-    totalRows
+    totalRows,
   );
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4">
-        <div className="relative w-full sm:w-auto flex-1 max-w-sm">
+      <div className="flex flex-col items-start justify-between gap-4 py-4 sm:flex-row sm:items-center">
+        <div className="relative w-full max-w-sm flex-1 sm:w-auto">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Search enrollments..."
             value={globalFilter}
             onChange={(event) => setGlobalFilter(event.target.value)}
-            className="pl-8 border-input focus-visible:ring-ring w-full"
+            className="w-full border-input pl-8 focus-visible:ring-ring"
           />
         </div>
-        <div className="flex items-center space-x-2 w-full sm:w-auto">
+        <div className="flex w-full items-center space-x-2 sm:w-auto">
           <Select
             value={pagination.pageSize.toString()}
             onValueChange={handleRowsPerPageChange}
@@ -350,7 +349,7 @@ export function DataTable<TData extends HealthPlan>({
               {table
                 .getAllColumns()
                 .filter(
-                  (column) => column.id !== "actions" && column.id !== "gender"
+                  (column) => column.id !== "actions" && column.id !== "gender",
                 )
                 .map((column) => (
                   <DropdownMenuCheckboxItem
@@ -374,24 +373,24 @@ export function DataTable<TData extends HealthPlan>({
       {isMobile ? (
         renderMobileView()
       ) : (
-        <div className="rounded-md border overflow-hidden">
+        <div className="overflow-hidden rounded-md border">
           <Table>
             <TableHeader className="bg-secondary">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow
                   key={headerGroup.id}
-                  className="hover:bg-muted border-border"
+                  className="border-border hover:bg-muted"
                 >
                   {headerGroup.headers.map((header) => (
                     <TableHead
                       key={header.id}
-                      className="text-primary font-semibold"
+                      className="font-semibold text-primary"
                     >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   ))}
@@ -404,14 +403,14 @@ export function DataTable<TData extends HealthPlan>({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
-                    className="cursor-pointer hover:bg-muted transition-colors duration-200 border-border"
+                    className="cursor-pointer border-border transition-colors duration-200 hover:bg-muted"
                     onClick={(e) => handleRowClick(row.original, e)}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="py-3">
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext()
+                          cell.getContext(),
                         )}
                       </TableCell>
                     ))}
@@ -451,7 +450,7 @@ export function DataTable<TData extends HealthPlan>({
           >
             Previous
           </Button>
-          <div className="text-sm text-muted-foreground hidden xs:block">
+          <div className="xs:block hidden text-sm text-muted-foreground">
             Page {currentPage} of {pageCount || 1}
           </div>
           <Button
@@ -476,7 +475,7 @@ export function DataTable<TData extends HealthPlan>({
                 </DialogTitle>
               </DialogHeader>
               <div className="flex flex-col items-center space-y-4">
-                <div className="relative w-full h-auto max-h-[60vh] overflow-hidden rounded-md border">
+                <div className="relative h-auto max-h-[60vh] w-full overflow-hidden rounded-md border">
                   <Image
                     src={
                       selectedEnrollment.idCardUrl ?? "/placeholder-image.jpg"
@@ -490,7 +489,7 @@ export function DataTable<TData extends HealthPlan>({
                   />
                 </div>
                 <Button
-                  className="w-full sm:w-auto flex items-center gap-2"
+                  className="flex w-full items-center gap-2 sm:w-auto"
                   asChild
                 >
                   <a href={selectedEnrollment.idCardUrl ?? "#"} download>
@@ -505,8 +504,8 @@ export function DataTable<TData extends HealthPlan>({
 
           {/* Hospital List Dialog */}
           <Dialog open={isHospitalOpen} onOpenChange={setIsHospitalOpen}>
-            <DialogContent className="max-w-[90vw] sm:max-w-2xl md:max-w-4xl lg:max-w-5xl p-0 overflow-hidden">
-              <DialogHeader className="p-4 sm:p-6 border-b">
+            <DialogContent className="max-w-[90vw] overflow-hidden p-0 sm:max-w-2xl md:max-w-4xl lg:max-w-5xl">
+              <DialogHeader className="border-b p-4 sm:p-6">
                 <DialogTitle className="text-xl font-semibold">
                   Network Hospitals
                 </DialogTitle>
@@ -514,11 +513,11 @@ export function DataTable<TData extends HealthPlan>({
               <div className="relative w-full">
                 <iframe
                   src={selectedEnrollment.hospitalListUrl}
-                  className="w-full h-[50vh] sm:h-[60vh] md:h-[70vh]"
+                  className="h-[50vh] w-full sm:h-[60vh] md:h-[70vh]"
                   title="Hospital List"
                 />
               </div>
-              <div className="p-4 border-t flex justify-end">
+              <div className="flex justify-end border-t p-4">
                 <Button variant="outline" asChild>
                   <a
                     href={selectedEnrollment.hospitalListUrl}
@@ -542,8 +541,8 @@ export function DataTable<TData extends HealthPlan>({
                   Health Plan Details
                 </DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 overflow-y-auto max-h-[70vh]">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="max-h-[70vh] space-y-4 overflow-y-auto">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">ID</p>
                     <p className="font-medium">
@@ -554,7 +553,7 @@ export function DataTable<TData extends HealthPlan>({
                     <p className="text-sm text-muted-foreground">Status</p>
                     <p className="font-medium">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           selectedEnrollment.expired
                             ? "bg-red-100 text-red-800"
                             : "bg-green-100 text-green-800"
@@ -581,7 +580,7 @@ export function DataTable<TData extends HealthPlan>({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2">
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Start Date</p>
                     <p className="font-medium">
@@ -603,9 +602,9 @@ export function DataTable<TData extends HealthPlan>({
                 </div>
 
                 <div className="pt-4">
-                  <p className="text-sm text-muted-foreground mb-2">ID Card</p>
-                  <div className="relative w-full h-auto rounded-md border overflow-hidden">
-                    <div className="aspect-[4/3] relative">
+                  <p className="mb-2 text-sm text-muted-foreground">ID Card</p>
+                  <div className="relative h-auto w-full overflow-hidden rounded-md border">
+                    <div className="relative aspect-[4/3]">
                       <Image
                         src={
                           selectedEnrollment.idCardUrl ??

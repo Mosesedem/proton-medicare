@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { useRef } from "react"
-import { motion, useInView } from "framer-motion"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function ProgramExplained() {
-  const containerRef = useRef(null)
-  const isInView = useInView(containerRef, { once: true })
+  const containerRef = useRef(null);
+  const isInView = useInView(containerRef, { once: true });
 
   const sections = [
     {
@@ -37,7 +37,8 @@ export function ProgramExplained() {
       content: [
         {
           title: "Comprehensive Training",
-          description: "Access our extensive training materials and resources to become a Medicare expert.",
+          description:
+            "Access our extensive training materials and resources to become a Medicare expert.",
         },
         {
           title: "Marketing Support",
@@ -57,35 +58,38 @@ export function ProgramExplained() {
       content: [
         {
           title: "Competitive Compensation",
-          description: "Earn competitive referral fees for every successful Medicare enrollment you facilitate.",
+          description:
+            "Earn competitive referral fees for every successful Medicare enrollment you facilitate.",
         },
         {
           title: "Performance Bonuses",
-          description: "Qualify for additional bonuses and incentives based on your performance and dedication.",
+          description:
+            "Qualify for additional bonuses and incentives based on your performance and dedication.",
         },
         {
           title: "Professional Development",
-          description: "Access exclusive training opportunities and certifications to advance your career.",
+          description:
+            "Access exclusive training opportunities and certifications to advance your career.",
         },
       ],
     },
-  ]
+  ];
 
   return (
-    <section className="py-24 bg-accent/10" ref={containerRef}>
-      <div className="container px-4 mx-auto max-w-7xl">
+    <section className="bg-accent/10 py-24" ref={containerRef}>
+      <div className="mx-auto max-w-7xl px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.6 }}
         >
-          <Tabs defaultValue="what-means" className="space-y-8 ">
-            <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 h-auto">
+          <Tabs defaultValue="what-means" className="space-y-8">
+            <TabsList className="grid h-auto w-full grid-cols-1 md:grid-cols-3">
               {sections.map((section) => (
                 <TabsTrigger
                   key={section.id}
                   value={section.id}
-                  className="py-4 data-[state=active]:bg-teal-50 text-gray-500/80 data-[state=active]:text-slate-700"
+                  className="py-4 text-gray-500/80 data-[state=active]:bg-teal-50 data-[state=active]:text-slate-700"
                 >
                   {section.title}
                 </TabsTrigger>
@@ -104,10 +108,14 @@ export function ProgramExplained() {
                     >
                       <Card className="h-full">
                         <CardHeader>
-                          <CardTitle className="text-xl">{item.title}</CardTitle>
+                          <CardTitle className="text-xl">
+                            {item.title}
+                          </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-muted-foreground">{item.description}</p>
+                          <p className="text-muted-foreground">
+                            {item.description}
+                          </p>
                         </CardContent>
                       </Card>
                     </motion.div>
@@ -119,6 +127,5 @@ export function ProgramExplained() {
         </motion.div>
       </div>
     </section>
-  )
+  );
 }
-

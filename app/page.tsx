@@ -157,7 +157,7 @@ export default function Home() {
               "url('data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')",
           }}
         />
-        <div className="container relative px-4 md:px-6">
+        <div className="relative px-4 md:px-6">
           <div className="flex flex-col items-center space-y-4 text-center">
             <motion.div
               className="space-y-2"
@@ -215,7 +215,7 @@ export default function Home() {
             clipPath: "polygon(0 0, 100% 0, 100% 85%, 0% 100%)",
           }}
         />
-        <div className="container relative px-6 md:px-12">
+        <div className="relative px-6 md:px-12">
           <div className="grid items-center gap-10 md:grid-cols-2 lg:gap-16">
             {/* Left Content */}
             <motion.div
@@ -295,7 +295,7 @@ export default function Home() {
 
       {/* Trust Indicators */}
       <section className="w-full bg-muted/50 py-12 md:py-24 lg:hidden">
-        <div className="container mx-auto px-4">
+        <div className="mx-auto px-4">
           <h2 className="mb-8 text-center text-3xl font-bold tracking-tighter text-primary">
             See What sets us Apart
           </h2>
@@ -330,7 +330,7 @@ export default function Home() {
 
       {/* Features Section */}
       <section className="w-full bg-muted/50 py-10">
-        <div className="container mx-auto px-4">
+        <div className="mx-auto px-4">
           <h2 className="mb-8 text-center text-3xl font-bold tracking-tighter text-primary">
             See What sets us Apart
           </h2>
@@ -388,7 +388,7 @@ export default function Home() {
 
       {/* Plans Section */}
       <section className="w-full bg-muted/50 py-12 md:py-24">
-        <div className="container mx-auto space-y-12 px-4 py-8">
+        <div className="mx-auto space-y-12 px-4 py-8">
           <h2 className="mb-8 text-center text-3xl font-bold tracking-tighter">
             Our Plans
           </h2>
@@ -438,7 +438,7 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="w-full py-12 md:py-24">
+      {/* <section className="w-full py-12 md:py-24">
         <div className="container px-4 md:px-6">
           <h2 className="mb-8 text-center text-3xl font-bold tracking-tighter">
             What Our Members Say
@@ -447,10 +447,10 @@ export default function Home() {
             <TestimonialCarousel testimonials={testimonials} />
           </div>
         </div>
-      </section>
+      </section> */}
 
       <section className="w-full overflow-hidden bg-accent/100 py-12 md:py-24">
-        <div className="container px-4 md:px-6">
+        <div className="px-4 md:px-6">
           <div className="mb-12 space-y-4 text-center">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
               Our Partners
@@ -465,7 +465,6 @@ export default function Home() {
             <div className="absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-transparent to-transparent md:w-32" />
             <div className="absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-transparent to-transparent md:w-32" />
 
-            {/* Scrolling Container */}
             <div className="relative mx-[-20px] overflow-hidden px-[20px]">
               {/* First Row - Original */}
               <div className="animate-scroll flex space-x-8 md:space-x-16">
@@ -525,7 +524,7 @@ export default function Home() {
 
       {/* Steps Section */}
       <section className="w-full bg-muted/50 py-12 md:py-24">
-        <div className="container mx-auto px-4">
+        <div className="mx-auto px-4">
           <h2 className="mb-12 text-center text-3xl font-bold md:text-4xl">
             How It Works
           </h2>
@@ -575,11 +574,11 @@ export default function Home() {
 
       {/* FAQs Section */}
       <section className="w-full py-12 md:py-24">
-        <div className="container px-4 md:px-6">
+        <div className="px-4 md:px-6">
           <h2 className="mb-8 text-center text-3xl font-bold tracking-tighter">
             Frequently Asked Questions
           </h2>
-          <Accordion
+          {/* <Accordion
             type="single"
             collapsible
             className="mx-auto w-full max-w-3xl"
@@ -590,7 +589,37 @@ export default function Home() {
                 <AccordionContent>{faq.answer}</AccordionContent>
               </AccordionItem>
             ))}
-          </Accordion>
+          </Accordion> */}
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1, duration: 0.6 }}
+          >
+            <Accordion
+              type="single"
+              collapsible
+              className="mx-auto w-full max-w-3xl space-y-4"
+            >
+              {faqs.map((faq, index) => (
+                <AccordionItem
+                  key={index}
+                  value={`item-${index}`}
+                  className="overflow-hidden rounded-lg border border-gray-200 bg-accent/80 backdrop-blur-sm"
+                >
+                  <AccordionTrigger className="px-6 py-4 hover:bg-gray-50/50 hover:no-underline">
+                    <div className="flex items-center text-left">
+                      <span className="text-primary">{faq.question}</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 py-4 text-primary/80">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </motion.div>
+
           <div className="mt-8 text-center">
             <Button asChild variant="outline">
               <Link href="/faqs">View All FAQs</Link>
@@ -602,7 +631,7 @@ export default function Home() {
       {/* CTA Section */}
       <section className="w-full bg-gradient-to-r from-teal-600 via-teal-500 to-teal-600 py-12 text-white md:py-24">
         <motion.div
-          className="container px-4 md:px-6"
+          className="px-4 md:px-6"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}

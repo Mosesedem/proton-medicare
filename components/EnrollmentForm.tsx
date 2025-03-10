@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import type React from "react";
@@ -24,13 +25,17 @@ import { useLayoutConfig } from "@/contexts/LayoutConfigContext";
 import { Eye, EyeOff, LoaderCircle, RefreshCw } from "lucide-react";
 import { Slideshow } from "@/components/Slideshow";
 import { Toaster, toast } from "sonner";
+import { payWithEtegram } from "etegram-pay";
+import Preloader from "./preloader";
 
 declare global {
   interface Window {
     PaystackPop: any;
+    EtegramPay: any;
   }
 }
 
+// Authentication Functions
 export const checkEmail = async (email: string) => {
   const response = await fetch("/api/check-email", {
     method: "POST",
@@ -48,7 +53,6 @@ export const login = async (email: string, password: string) => {
       body: JSON.stringify({ email, password }),
     });
     const data = await response.json();
-    console.log("Login response:", data); // Debug log
     if (data.token) {
       localStorage.setItem("token", data.token);
     }
@@ -73,7 +77,6 @@ export const register = async (
       body: JSON.stringify({ email, password, firstName, lastName, phone }),
     });
     const data = await response.json();
-    console.log("Register response:", data); // Debug log
     if (data.token) {
       localStorage.setItem("token", data.token);
     }
@@ -87,24 +90,22 @@ export const register = async (
 export const createEnrollment = async (formData: FormData) => {
   try {
     const token = localStorage.getItem("token");
-    if (!token) {
-      throw new Error("No authentication token found");
-    }
-
     const response = await fetch("/api/create-enrollment", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        ...(token && { Authorization: `Bearer ${token}` }),
       },
       body: formData,
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        return { success: false, message: "Authentication required" };
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const result = await response.json();
-    console.log("Create enrollment response:", result);
     return result;
   } catch (error) {
     console.error("Error in createEnrollment:", error);
@@ -115,7 +116,6 @@ export const createEnrollment = async (formData: FormData) => {
 export interface ApiResponse {
   success: boolean;
   message: string;
-  exists?: boolean;
   paymentUrl?: string;
   enrollment_id?: number;
   reference?: string;
@@ -148,6 +148,10 @@ export default function EnrollmentForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPaymentChoice, setShowPaymentChoice] = useState(false);
+  const [paystackReady, setPaystackReady] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   const {
     formData,
     price,
@@ -157,15 +161,96 @@ export default function EnrollmentForm() {
     setFormData,
   } = useEnrollmentForm();
   const [enrollmentId, setEnrollmentId] = useState<number | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
   const { setConfig } = useLayoutConfig();
+  const [userEmail, setUserEmail] = useState("");
 
+  // Check authentication status
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetch("/api/auth/user", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => {
+          if (res.ok) return res.json();
+          throw new Error("Invalid token");
+        })
+        .then((data) => {
+          setUserEmail(data.email || "");
+          setIsAuthenticated(true);
+        })
+        .catch(() => {
+          localStorage.removeItem("token");
+          setIsAuthenticated(false);
+          setUserEmail("");
+        });
+    }
+  }, []);
+
+  useEffect(() => {
+    setConfig({ hideHeader: false, hideFooter: true });
+    return () => setConfig({ hideHeader: false, hideFooter: false });
+  }, [setConfig]);
+
+  // Validation Functions
+  const validatePhone = (phone: string) => {
+    const phoneRegex = /^\+?[0-9]\d{1,14}$/;
+    return phoneRegex.test(phone) && phone.length === 11;
+  };
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateName = (name: string) => {
+    return name.trim().length >= 2;
+  };
+
+  const validateDOB = (dob: string) => {
+    const birthDate = new Date(dob);
+    const today = new Date();
+    return birthDate < today && !isNaN(birthDate.getTime());
+  };
+
+  const validateStep1 = (formData: any) => {
+    const { firstName, lastName, email, phone } = formData;
+    return (
+      validateName(firstName) &&
+      validateName(lastName) &&
+      validateEmail(email) &&
+      validatePhone(phone)
+    );
+  };
+
+  const validateStep2 = (formData: any) => {
+    const { plan, duration, maritalStatus, headshot, dob, gender } = formData;
+    return (
+      !!plan &&
+      !!gender &&
+      !!duration &&
+      validateDOB(dob) &&
+      !!maritalStatus &&
+      !!headshot
+    );
+  };
+
+  // Form Handlers
   const handleNextStep = () => {
+    if (currentStep === 1 && !validateStep1(formData)) {
+      toast.error("Please complete all required fields correctly");
+      return;
+    }
+    if (currentStep === 2 && !validateStep2(formData)) {
+      toast.error("Please complete all required fields correctly");
+      return;
+    }
     setCurrentStep((prev) => Math.min(prev + 1, 3));
   };
 
-  const handlePreviousStep = () =>
+  const handlePreviousStep = () => {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
+  };
 
   const handleReset = () => {
     setFormData({
@@ -191,92 +276,6 @@ export default function EnrollmentForm() {
     toast.success("Form has been reset");
   };
 
-  const validatePhone = (phone: string) => {
-    const phoneRegex = /^\+?[0-9]\d{1,14}$/;
-    return phoneRegex.test(phone) && phone.length === 11;
-  };
-
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validateName = (name: string) => {
-    return name.trim().length >= 2;
-  };
-
-  const validateDOB = (dob: string) => {
-    const birthDate = new Date(dob);
-    const today = new Date();
-
-    if (isNaN(birthDate.getTime())) {
-      return false;
-    }
-
-    return birthDate < today;
-  };
-
-  const validateStep1 = (formData: any) => {
-    const { firstName, lastName, email, phone } = formData;
-
-    if (!validateName(firstName)) {
-      toast.error("First name must be at least 2 characters.");
-      return false;
-    }
-
-    if (!validateName(lastName)) {
-      toast.error("Last name must be at least 2 characters.");
-      return false;
-    }
-
-    if (!validateEmail(email)) {
-      toast.error("Invalid email format.");
-      return false;
-    }
-
-    if (!validatePhone(phone)) {
-      toast.error("Phone number must be exactly 11 digits.");
-      return false;
-    }
-
-    return true;
-  };
-
-  const validateStep2 = (formData: any) => {
-    const { plan, duration, maritalStatus, headshot, dob, gender } = formData;
-
-    if (!plan) {
-      toast.error("Plan is required.");
-      return false;
-    }
-
-    if (!gender) {
-      toast.error("Select your Gender");
-      return false;
-    }
-
-    if (!duration) {
-      toast.error("Payment duration is required.");
-      return false;
-    }
-
-    if (!validateDOB(dob)) {
-      toast.error("Date of birth must be in the past.");
-      return false;
-    }
-
-    if (!maritalStatus) {
-      toast.error("Marital status is required.");
-      return false;
-    }
-
-    if (!headshot) {
-      toast.error("Headshot is required.");
-      return false;
-    }
-    return true;
-  };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -284,19 +283,49 @@ export default function EnrollmentForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (currentStep < 3) {
+      handleNextStep();
+      return;
+    }
+
     setLoading(true);
-
     try {
-      const emailCheckResult = await checkEmail(formData.email);
-
-      if (emailCheckResult.exists) {
-        setModalType("login");
-      } else {
-        setModalType("register");
+      if (!isAuthenticated) {
+        const emailCheck = await checkEmail(formData.email);
+        setModalType(emailCheck.exists ? "login" : "register");
+        setShowModal(true);
+        return;
       }
-      setShowModal(true);
+
+      const enrollmentFormData = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value instanceof File) {
+          enrollmentFormData.append(key, value);
+        } else if (value != null) {
+          enrollmentFormData.append(key, String(value));
+        }
+      });
+
+      const enrollmentResult = await createEnrollment(enrollmentFormData);
+
+      if (!enrollmentResult.success) {
+        if (enrollmentResult.message === "Authentication required") {
+          setModalType("login");
+          setShowModal(true);
+          return;
+        }
+        throw new Error(
+          enrollmentResult.message || "Failed to create enrollment",
+        );
+      }
+
+      setEnrollmentId(enrollmentResult.enrollment_id);
+      setShowPaymentChoice(true);
+      toast.success("Enrollment created successfully");
     } catch (error) {
-      toast.error("Failed to check email. Please try again.");
+      toast.error("Failed to process enrollment. Please try again.");
+      console.error("Submit error:", error);
     } finally {
       setLoading(false);
     }
@@ -306,10 +335,9 @@ export default function EnrollmentForm() {
     setLoading(true);
     try {
       let authResult;
-
       if (modalType === "register") {
         if (password !== confirmPassword) {
-          toast.error("Passwords do not match!");
+          toast.error("Passwords do not match");
           return;
         }
         authResult = await register(
@@ -323,10 +351,11 @@ export default function EnrollmentForm() {
         authResult = await login(formData.email, password);
       }
 
-      console.log("Auth result:", authResult);
+      if (authResult.success) {
+        setIsAuthenticated(true);
+        setShowModal(false);
 
-      if (authResult.success && authResult.token) {
-        // Check for token
+        // Proceed with enrollment after successful auth
         const enrollmentFormData = new FormData();
         Object.entries(formData).forEach(([key, value]) => {
           if (value instanceof File) {
@@ -336,47 +365,21 @@ export default function EnrollmentForm() {
           }
         });
 
-        console.log(
-          "Enrollment form data:",
-          Object.fromEntries(enrollmentFormData),
-        );
-
         const enrollmentResult = await createEnrollment(enrollmentFormData);
-
-        console.log("Enrollment result:", enrollmentResult);
-
         if (enrollmentResult.success) {
           setEnrollmentId(enrollmentResult.enrollment_id);
-          setShowModal(false);
           setShowPaymentChoice(true);
-        } else {
-          throw new Error(
-            enrollmentResult.message || "Failed to create enrollment",
-          );
+          toast.success("Successfully authenticated and enrolled");
         }
       } else {
-        throw new Error("Authentication failed - no token received");
+        throw new Error(authResult.message || "Authentication failed");
       }
     } catch (error) {
-      console.error("Error in handleModalSubmit:", error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Process failed. Please try again.",
-      );
+      toast.error("Authentication failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  useEffect(() => {
-    setConfig({ hideHeader: false, hideFooter: true });
-    return () => setConfig({ hideHeader: false, hideFooter: false });
-  }, [setConfig]);
 
   const handlePaymentChoice = async (type: "subscription" | "onetime") => {
     if (!enrollmentId) {
@@ -384,12 +387,17 @@ export default function EnrollmentForm() {
       return;
     }
 
+    if (type === "subscription" && !paystackReady) {
+      toast.error("Payment system not ready. Please refresh and try again.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const paymentData = {
+      const paymentData: PaymentData = {
         firstName: formData.firstName,
         lastName: formData.lastName,
-        email: formData.email,
+        email: userEmail || formData.email,
         price: price,
         plan: formData.plan,
         enrollment_id: enrollmentId,
@@ -397,67 +405,92 @@ export default function EnrollmentForm() {
       };
 
       const paymentResult = await initiatePayment(paymentData);
-
       if (!paymentResult.success) {
-        throw new Error(paymentResult.message);
+        throw new Error(paymentResult.message || "Payment initiation failed");
       }
 
-      const handler = window.PaystackPop.setup({
-        key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        email: formData.email,
-        amount: price * 100,
-        ref: paymentResult.reference,
-        callback: (response: any) => {
-          if (response.status === "success") {
-            toast.success("Payment successful!");
-            window.location.href = "/dashboard";
-          }
-        },
-        onClose: () => {
-          toast.error("Payment window closed");
-        },
-      });
-
-      handler.openIframe();
+      if (type === "subscription") {
+        const handler = window.PaystackPop.setup({
+          key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
+          email: userEmail || formData.email,
+          plan: paymentResult.plan_code,
+          ref: paymentResult.reference,
+          metadata: { ...paymentResult.metadata },
+          callback: (response: any) => {
+            if (response.status === "success") {
+              toast.success("Subscription successful!");
+              window.location.href = "/dashboard/enrollments";
+            }
+          },
+          onClose: () => {
+            toast.info("Payment window closed");
+            setLoading(false);
+          },
+        });
+        handler.openIframe();
+      } else {
+        await payWithEtegram({
+          projectID:
+            process.env.ETEGRAM_PROJECT_ID || "67c4467f0a013a02393e6142",
+          publicKey:
+            process.env.ETEGRAM_PROJECT_PUBLIC_KEY ||
+            "pk_live-5b7363cc53914ddda99f45757052c36f",
+          phone: formData.phone,
+          firstname: formData.firstName,
+          lastname: formData.lastName,
+          email: userEmail || formData.email,
+          amount: price.toString(),
+          reference: paymentResult.reference,
+        });
+      }
     } catch (error) {
-      toast.error("Payment failed. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Payment failed");
     } finally {
-      setLoading(false);
+      if (type !== "subscription") setLoading(false);
       setShowPaymentChoice(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex-1 space-y-4 p-8 pt-6">
+        <Preloader isLoading />
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex min-h-screen flex-col md:flex-row">
-      <div className="z-999 relative w-full overflow-y-auto p-8 md:w-1/2 md:p-12 lg:p-16">
-        <div className="mb-12"></div>
-        <form id="paystack-form">
+      <div className="relative w-full overflow-y-auto p-8 md:w-1/2 md:p-12 lg:p-16">
+        <div className="mb-12">
           <Script
             src="https://js.paystack.co/v1/inline.js"
-            strategy="lazyOnload"
+            strategy="afterInteractive"
+            onLoad={() => setPaystackReady(true)}
+            onError={() => toast.error("Failed to load payment system")}
           />
-        </form>
+        </div>
+
         <Card className="mx-auto w-full max-w-2xl shadow-none">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-semibold">
-              Enrollment Form
-            </CardTitle>
-            <CardDescription className="text-emerald-600">
-              Step {currentStep} of 3
-            </CardDescription>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-              className="ml-auto h-12 px-6 text-teal-600 hover:text-teal-500"
-            >
-              <RefreshCw className="h-4 w-4 text-teal-600" />
-              Reset Form
-            </Button>
-          </CardHeader>
           <form onSubmit={handleSubmit}>
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl font-semibold">
+                Enrollment Form
+              </CardTitle>
+              <CardDescription className="text-emerald-600">
+                Step {currentStep} of 3
+              </CardDescription>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+                className="ml-auto h-12 px-6 text-teal-600 hover:text-teal-500"
+              >
+                <RefreshCw className="h-4 w-4 text-teal-600" />
+                Reset Form
+              </Button>
+            </CardHeader>
+
             <CardContent className="space-y-6">
               {currentStep === 1 && (
                 <PersonalInfoStep
@@ -478,6 +511,7 @@ export default function EnrollmentForm() {
                 <PreviewStep formData={formData} previewImage={previewImage} />
               )}
             </CardContent>
+
             <CardFooter className="flex justify-between pt-6">
               {currentStep > 1 && (
                 <Button
@@ -489,42 +523,31 @@ export default function EnrollmentForm() {
                   Previous
                 </Button>
               )}
-              {currentStep < 3 && (
-                <Button
-                  type="button"
-                  onClick={handleNextStep}
-                  className="ml-auto h-12 bg-teal-500 px-6 hover:bg-emerald-600"
-                >
-                  Next
-                </Button>
-              )}
-              {currentStep === 3 && (
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="ml-auto h-12 bg-teal-600 px-6 hover:bg-emerald-600"
-                >
-                  {loading ? (
-                    <div className="flex items-center">
-                      <LoaderCircle
-                        className="mr-3 h-5 w-5 animate-spin text-accent ..."
-                        viewBox="0 0 24 24"
-                      />
-                      Processing...
-                    </div>
-                  ) : (
-                    "Submit Enrollment"
-                  )}
-                </Button>
-              )}
+              <Button
+                type={currentStep === 3 ? "submit" : "button"}
+                onClick={currentStep < 3 ? handleNextStep : undefined}
+                disabled={loading}
+                className="ml-auto h-12 bg-teal-600 px-6 hover:bg-emerald-600"
+              >
+                {loading ? (
+                  <div className="flex items-center">
+                    <LoaderCircle className="mr-3 h-5 w-5 animate-spin" />
+                    Processing...
+                  </div>
+                ) : currentStep === 3 ? (
+                  "Proceed to Payment"
+                ) : (
+                  "Next"
+                )}
+              </Button>
             </CardFooter>
           </form>
         </Card>
 
         <Dialog open={showModal} onOpenChange={setShowModal}>
           <DialogContent className="sm:max-w-md">
-            <DialogTitle className="text-xl font-semibold">
-              {modalType === "login" ? "Welcome Back!" : `Create Your Account`}
+            <DialogTitle>
+              {modalType === "login" ? "Login" : "Register"}
             </DialogTitle>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
@@ -532,24 +555,23 @@ export default function EnrollmentForm() {
                 <div className="relative">
                   <Input
                     id="password"
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     className="h-12"
-                    placeholder="Enter your Password"
-                    type={showPassword ? "text" : "password"}
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2"
-                    onClick={togglePasswordVisibility}
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
+                    onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
@@ -557,42 +579,26 @@ export default function EnrollmentForm() {
               {modalType === "register" && (
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="confirmPassword"
-                      type={showPassword ? "text" : "password"}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                      className="h-12"
-                      placeholder="Confirm your password"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2"
-                      onClick={togglePasswordVisibility}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Button>
-                  </div>
+                  <Input
+                    id="confirmPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="h-12"
+                  />
                 </div>
               )}
               <Button
                 onClick={handleModalSubmit}
                 disabled={loading}
-                className="h-12 w-full bg-teal-500 hover:bg-emerald-600"
+                className="h-12 w-full bg-teal-600 hover:bg-emerald-600"
               >
                 {loading
                   ? "Processing..."
                   : modalType === "login"
-                    ? "Sign In"
-                    : "Create Account"}
+                    ? "Login"
+                    : "Register"}
               </Button>
             </div>
           </DialogContent>

@@ -35,7 +35,7 @@ export function PlanCard({
   additionalBenefits,
 }: PlanProps) {
   return (
-    <Card className="snap-align-center group relative flex min-w-[260px] max-w-[320px] flex-grow transform flex-col overflow-hidden from-purple-500/10 via-blue-500/10 to-teal-500/10 transition-all duration-500 before:absolute before:inset-0 before:bg-gradient-to-r before:from-purple-500/10 before:via-teal-300/10 before:to-teal-600/10 before:opacity-0 before:transition-opacity before:duration-500 after:absolute after:inset-0 after:rounded-lg after:border-2 after:border-transparent after:transition-all after:duration-500 hover:scale-[1.03] hover:shadow-[0_0_40px_rgba(45,212,191,0.1)] hover:before:opacity-100 hover:after:border-teal-500/50">
+    <Card className="snap-align-left group relative flex min-w-[260px] max-w-[320px] flex-grow transform flex-col overflow-hidden from-purple-500/10 via-blue-500/10 to-teal-500/10 transition-all duration-500 before:absolute before:inset-0 before:bg-gradient-to-r before:from-purple-500/10 before:via-teal-300/10 before:to-teal-600/10 before:opacity-0 before:transition-opacity before:duration-500 after:absolute after:inset-0 after:rounded-lg after:border-2 after:border-transparent after:transition-all after:duration-500 hover:scale-[1.03] hover:shadow-[0_0_40px_rgba(45,212,191,0.1)] hover:before:opacity-100 hover:after:border-teal-500/50">
       <CardHeader>
         <CardTitle className="relative text-lg font-semibold transition-colors group-hover:text-teal-600">
           {name}

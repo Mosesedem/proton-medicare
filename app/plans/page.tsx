@@ -1,9 +1,9 @@
-"use client"
-import { PlanCard } from "@/components/PlanCard"
-import { useRef, useState, useEffect } from "react"
-import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/solid"
-import { plans } from '@/lib/constants'
-import Image from "next/image"
+"use client";
+import { PlanCard } from "@/components/PlanCard";
+import { useRef, useState, useEffect } from "react";
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/solid";
+import { plans } from "@/lib/constants";
+import Image from "next/image";
 
 function HorizontalScrollSection({
   title,
@@ -17,11 +17,12 @@ function HorizontalScrollSection({
   const [showRightButton, setShowRightButton] = useState(true);
 
   // Filter plans by type
-  const filteredPlans = plans.filter(plan => plan.type === planType);
+  const filteredPlans = plans.filter((plan) => plan.type === planType);
 
   const updateScrollButtonsVisibility = () => {
     if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      const { scrollLeft, scrollWidth, clientWidth } =
+        scrollContainerRef.current;
       setShowLeftButton(scrollLeft > 0);
       setShowRightButton(scrollLeft + clientWidth < scrollWidth);
     }
@@ -42,18 +43,19 @@ function HorizontalScrollSection({
     const container = scrollContainerRef.current;
     container?.addEventListener("scroll", updateScrollButtonsVisibility);
     updateScrollButtonsVisibility(); // Initial check
-    return () => container?.removeEventListener("scroll", updateScrollButtonsVisibility);
+    return () =>
+      container?.removeEventListener("scroll", updateScrollButtonsVisibility);
   }, []);
 
   return (
     <section className="relative">
-      <h2 className="text-3xl font-bold mb-6">{title}</h2>
+      <h2 className="mb-6 text-3xl font-bold">{title}</h2>
 
       {/* Left Scroll Button */}
       {showLeftButton && (
         <button
           onClick={() => scroll("left")}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-gray-100 rounded-full p-2 shadow-lg transition"
+          className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg transition hover:bg-gray-100"
         >
           <ChevronLeftIcon className="h-8 w-8 text-gray-600" />
         </button>
@@ -63,7 +65,7 @@ function HorizontalScrollSection({
       {showRightButton && (
         <button
           onClick={() => scroll("right")}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-gray-100 rounded-full p-2 shadow-lg transition"
+          className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg transition hover:bg-gray-100"
         >
           <ChevronRightIcon className="h-8 w-8 text-gray-600" />
         </button>
@@ -72,11 +74,11 @@ function HorizontalScrollSection({
       <div className="relative overflow-hidden">
         <div
           ref={scrollContainerRef}
-          className="py-4 flex space-x-4 overflow-x-scroll scrollbar-hide scroll-smooth"
+          className="scrollbar-hide flex space-x-4 overflow-x-scroll scroll-smooth py-4"
         >
           {filteredPlans.map((plan) => (
             <div key={plan.id} className="flex-shrink-0">
-              <PlanCard 
+              <PlanCard
                 name={plan.name}
                 description={plan.description}
                 price={`$${plan.basePrice}`}
@@ -94,25 +96,26 @@ function HorizontalScrollSection({
 export default function PlansPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-teal-700 to-teal-200">
-      <div className="container mx-auto px-4 py-20">
-        <div className="grid lg:grid-cols-2 gap-8 items-center">
+      <div className="mx-auto px-4 py-20">
+        <div className="grid items-center gap-8 lg:grid-cols-2">
           <div className="space-y-4">
-            <h1 className="text-4xl md:text-6xl font-bold text-white">
+            <h1 className="text-4xl font-bold text-white md:text-6xl">
               Find care providers by plan
             </h1>
             <p className="text-xl text-blue-100">
-              Select your Proton Medicare plan to view available healthcare providers in your network.
+              Select your Proton Medicare plan to view available healthcare
+              providers in your network.
             </p>
           </div>
           <div className="hidden lg:block">
             <div className="relative">
-              <div className="absolute inset-0 bg-blue-500/20 rounded-xl blur-2xl" />
+              <div className="absolute inset-0 rounded-xl bg-blue-500/20 blur-2xl" />
               <Image
-                              src="https://v2.protonmedicare.com/api/html/rrrrr.png"
+                src="https://v2.protonmedicare.com/api/html/rrrrr.png"
                 alt="Medical facility illustration"
-                className="relative rounded-xl h-300 w-500"
-                width={5} 
-                height={4}  
+                className="h-300 w-500 relative rounded-xl"
+                width={5}
+                height={4}
                 objectFit="cover"
               />
             </div>
@@ -120,10 +123,19 @@ export default function PlansPage() {
         </div>
       </div>
 
-      <div className="container bg-background mx-auto px-4 py-8 space-y-12">
-        <HorizontalScrollSection title="Medicare Plans" planType="medicarePlans" />
-        <HorizontalScrollSection title="Maternity Plans" planType="maternityPlans" />
-        <HorizontalScrollSection title="Standard Health Plans" planType="standardPlans" />
+      <div className="mx-auto space-y-12 bg-background px-4 py-8">
+        <HorizontalScrollSection
+          title="Medicare Plans"
+          planType="medicarePlans"
+        />
+        <HorizontalScrollSection
+          title="Maternity Plans"
+          planType="maternityPlans"
+        />
+        <HorizontalScrollSection
+          title="Standard Health Plans"
+          planType="standardPlans"
+        />
       </div>
     </main>
   );

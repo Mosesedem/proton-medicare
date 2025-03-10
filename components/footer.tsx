@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 export function Footer() {
   return (
     <footer className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container px-4 py-8 md:px-6 md:py-12">
+      <div className="px-4 py-8 md:px-6 md:py-12">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           {/* Brand Section */}
           <div className="space-y-4">

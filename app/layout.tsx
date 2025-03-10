@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { LayoutConfigProvider } from "@/contexts/LayoutConfigContext";
 import { ClientLayoutWrapper } from "@/components/ClientLayoutWrapper";
 import "./globals.css";
-import { Theme } from "@radix-ui/themes";
+import { Theme, ThemePanel } from "@radix-ui/themes";
 import { AuthProvider } from "@/app/auth/providers";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -37,8 +37,8 @@ export default function RootLayout({
                 <ClientLayoutWrapper>{children}</ClientLayoutWrapper>
                 <Toaster />
               </LayoutConfigProvider>
+              {/* <ThemePanel /> */}
             </AuthProvider>
-            {/* <ThemePanel /> */}
           </Theme>
         </ThemeProvider>
       </body>

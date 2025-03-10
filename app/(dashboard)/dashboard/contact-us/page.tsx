@@ -61,7 +61,7 @@ export default function ContactPage() {
   };
 
   const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setFormData({
       ...formData,
@@ -70,15 +70,15 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-500/10 via-teal-600/10 to-teal-500/10 px-4 py-8 sm:py-12 mt-11">
+    <div className="mt-11 min-h-screen bg-gradient-to-b from-gray-500/10 via-teal-600/10 to-teal-500/10 px-4 py-8 sm:py-12">
       <div className="container mx-auto max-w-7xl">
         {/* Header Section */}
-        <div className="flex flex-col items-center mb-8 sm:mb-12 space-y-4">
-          <Sparkles className="h-8 w-8 sm:h-12 sm:w-12 text-teal-600 animate-pulse " />
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-teal-500 to-teal-600/60">
+        <div className="mb-8 flex flex-col items-center space-y-4 sm:mb-12">
+          <Sparkles className="h-8 w-8 animate-pulse text-teal-600 sm:h-12 sm:w-12" />
+          <h1 className="bg-gradient-to-r from-teal-500 to-teal-600/60 bg-clip-text text-center text-3xl font-bold text-transparent sm:text-4xl md:text-5xl">
             Let us Connect
           </h1>
-          <p className="text-center text-muted-foreground max-w-2xl text-sm sm:text-base px-4">
+          <p className="max-w-2xl px-4 text-center text-sm text-muted-foreground sm:text-base">
             Choose your preferred way to reach us. We are available across
             multiple platforms and ready to assist you 24/7 with our AI-powered
             response system.
@@ -86,10 +86,10 @@ export default function ContactPage() {
         </div>
 
         <Tabs defaultValue="message" className="w-full">
-          <TabsList className="flex flex-wrap justify-center gap-2 sm:gap-4 h-18 bg-gray-700 w-auto">
+          <TabsList className="h-18 flex w-auto flex-wrap justify-center gap-2 bg-gray-700 sm:gap-4">
             <TabsTrigger
               value="message"
-              className="flex items-center justify-center gap-2 px-3 py-2 text-sm sm:text-base rounded-md border border-transparent hover:bg-primary/10"
+              className="flex items-center justify-center gap-2 rounded-md border border-transparent px-3 py-2 text-sm hover:bg-primary/10 sm:text-base"
             >
               <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" />
               <span className="hidden sm:inline">Message</span>
@@ -97,7 +97,7 @@ export default function ContactPage() {
 
             <TabsTrigger
               value="schedule"
-              className="flex items-center justify-center gap-2 px-3 py-2 text-sm sm:text-base rounded-md border border-transparent hover:bg-primary/10"
+              className="flex items-center justify-center gap-2 rounded-md border border-transparent px-3 py-2 text-sm hover:bg-primary/10 sm:text-base"
             >
               <Calendar className="h-5 w-5 sm:h-6 sm:w-6" />
               <span className="hidden sm:inline">Schedule</span>
@@ -105,7 +105,7 @@ export default function ContactPage() {
 
             <TabsTrigger
               value="social"
-              className="flex items-center justify-center gap-2 px-3 py-2 text-sm sm:text-base rounded-md border border-transparent hover:bg-primary/10"
+              className="flex items-center justify-center gap-2 rounded-md border border-transparent px-3 py-2 text-sm hover:bg-primary/10 sm:text-base"
             >
               <Globe className="h-5 w-5 sm:h-6 sm:w-6" />
               <span className="hidden sm:inline">Social</span>
@@ -113,7 +113,7 @@ export default function ContactPage() {
 
             <TabsTrigger
               value="ai"
-              className="flex items-center justify-center gap-2 px-3 py-2 text-sm sm:text-base rounded-md border border-transparent hover:bg-primary/10"
+              className="flex items-center justify-center gap-2 rounded-md border border-transparent px-3 py-2 text-sm hover:bg-primary/10 sm:text-base"
             >
               <Bot className="h-5 w-5 sm:h-6 sm:w-6" />
               <span className="hidden sm:inline">AI Support</span>
@@ -122,7 +122,7 @@ export default function ContactPage() {
 
           {/* Message Tab Content */}
           <TabsContent value="message">
-            <div className="grid gap-6 lg:gap-8 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2 lg:gap-8">
               {/* Contact Form Card */}
               <Card className="border-1 border-primary">
                 <CardHeader className="space-y-1 sm:space-y-2">
@@ -168,7 +168,7 @@ export default function ContactPage() {
                         id="message"
                         value={formData.message}
                         onChange={handleInputChange}
-                        className="border-primary/20 min-h-24 sm:min-h-32"
+                        className="min-h-24 border-primary/20 sm:min-h-32"
                         required
                       />
                     </div>
@@ -183,7 +183,7 @@ export default function ContactPage() {
 
               {/* Contact Options */}
               <div className="space-y-4 sm:space-y-6">
-                <Card className="group hover:border-primary/20 transition-all">
+                <Card className="group transition-all hover:border-primary/20">
                   <CardHeader>
                     <CardTitle className="flex items-center text-lg sm:text-xl">
                       <Phone className="mr-2 h-6 w-6 group-hover:text-primary" />
@@ -194,12 +194,12 @@ export default function ContactPage() {
                     <p className="text-sm sm:text-base">
                       Call us directly - +234 (0) 706 973 7196
                     </p>
-                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
                       Available 24/7
                     </p>
                     <Button
                       variant="outline"
-                      className="mt-3 sm:mt-4 text-sm sm:text-base"
+                      className="mt-3 text-sm sm:mt-4 sm:text-base"
                       onClick={() =>
                         (window.location.href = "tel:+2347069737196")
                       }
@@ -232,7 +232,7 @@ export default function ContactPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="group hover:border-primary/20 transition-all">
+                <Card className="group transition-all hover:border-primary/20">
                   <CardHeader className="p-4 sm:p-6">
                     <CardTitle className="flex items-center text-lg sm:text-xl">
                       <Mail className="mr-2 h-6 w-6 group-hover:text-primary" />
@@ -243,7 +243,7 @@ export default function ContactPage() {
                     <p className="text-sm sm:text-base">
                       support@protonmedicare.com
                     </p>
-                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
                       24/7 Support
                     </p>
                     <Badge className="mt-2" variant="secondary">
@@ -256,7 +256,7 @@ export default function ContactPage() {
                       onClick={() =>
                         window.open(
                           "mailto:support@protonmedicare.com",
-                          "_blank"
+                          "_blank",
                         )
                       }
                     >
@@ -313,7 +313,7 @@ export default function ContactPage() {
               ].map((social) => (
                 <Card
                   key={social.name}
-                  className="group hover:border-primary/20 transition-all"
+                  className="group transition-all hover:border-primary/20"
                 >
                   <CardHeader className="p-4 sm:p-6">
                     <CardTitle className="flex items-center text-lg sm:text-xl">
@@ -321,11 +321,11 @@ export default function ContactPage() {
                       {social.name}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-4 sm:p-6 pt-0">
+                  <CardContent className="p-4 pt-0 sm:p-6">
                     <p className="text-sm sm:text-base">{social.handle}</p>
                     <Button
                       variant="outline"
-                      className="mt-3 sm:mt-4 text-sm sm:text-base  border-primary/20"
+                      className="mt-3 border-primary/20 text-sm sm:mt-4 sm:text-base"
                     >
                       <Link href={social.link} target="_blank">
                         Follow Us

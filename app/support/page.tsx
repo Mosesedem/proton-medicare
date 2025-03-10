@@ -1,12 +1,25 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, MessageCircle, Phone, CircleArrowOutUpRight } from 'lucide-react'
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Mail,
+  MessageCircle,
+  Phone,
+  CircleArrowOutUpRight,
+} from "lucide-react";
 
 export default function SupportPage() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-center mb-8">How Can We Help You?</h1>
+    <div className="mx-auto px-4 py-8">
+      <h1 className="mb-8 text-center text-3xl font-bold">
+        How Can We Help You?
+      </h1>
       <div className="grid gap-8 md:grid-cols-4">
         <Card>
           <CardHeader>
@@ -56,14 +69,16 @@ export default function SupportPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <CircleArrowOutUpRight  className="mr-2 h-4 w-4" />
+              <CircleArrowOutUpRight className="mr-2 h-4 w-4" />
               Other Channels
             </CardTitle>
-            <CardDescription>View all available contact options</CardDescription>
+            <CardDescription>
+              View all available contact options
+            </CardDescription>
           </CardHeader>
-         
+
           <CardContent>
-          <p className="mb-4">Explore other channels</p>
+            <p className="mb-4">Explore other channels</p>
             <Button asChild className="w-full">
               <a href="/contact">Proceed</a>
             </Button>
@@ -71,6 +86,5 @@ export default function SupportPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
-

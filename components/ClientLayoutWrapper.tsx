@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, { ReactNode } from 'react';
-import { useLayoutConfig } from '@/contexts/LayoutConfigContext';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
+import React, { ReactNode } from "react";
+import { useLayoutConfig } from "@/contexts/LayoutConfigContext";
+import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
 
 export const ClientLayoutWrapper = ({ children }: { children: ReactNode }) => {
   const { config } = useLayoutConfig();
