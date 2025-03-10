@@ -74,8 +74,7 @@ const faqs = [
 const plans: Plan[] = importedPlans.map((plan) => ({
   name: plan.name,
   description: plan.description,
-  // Convert basePrice to a formatted string because the price in your component is expected as a string like "$19/month"
-  price: `$${plan.basePrice}/month`,
+  price: `₦ ${plan.basePrice.toLocaleString("en-NG")}/month`,
   features: plan.features,
   additionalBenefits: plan.additionalBenefits || [],
 }));
@@ -410,7 +409,7 @@ export default function Home() {
                   key={index}
                   className="sm:basis-full md:basis-1/2 lg:basis-1/3"
                 >
-                  <div className="p-2">
+                  <div className="flex justify-center">
                     <PlanCard
                       name={plan.name}
                       description={plan.description}
@@ -605,14 +604,14 @@ export default function Home() {
                 <AccordionItem
                   key={index}
                   value={`item-${index}`}
-                  className="overflow-hidden rounded-lg border border-gray-200 bg-accent/80 backdrop-blur-sm"
+                  className="overflow-hidden rounded-lg border border-gray-400 bg-accent/50 backdrop-blur-sm"
                 >
-                  <AccordionTrigger className="px-6 py-4 hover:bg-gray-50/50 hover:no-underline">
+                  <AccordionTrigger className="px-6 py-4 hover:bg-teal-900/95 hover:no-underline">
                     <div className="flex items-center text-left">
                       <span className="text-primary">{faq.question}</span>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-6 py-4 text-primary/80">
+                  <AccordionContent className="bg-secondary px-6 py-4 text-primary/80">
                     {faq.answer}
                   </AccordionContent>
                 </AccordionItem>
