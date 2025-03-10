@@ -40,7 +40,9 @@ export function PlanSelectionModal({
               className="justify-between"
             >
               <span>{plan.name}</span>
-              <span>${plan.basePrice}/month</span>
+              <span>{`₦ ${plan.basePrice.toLocaleString(
+                "en-NG"
+              )} / Month`}</span>
             </Button>
           ))}
         </div>

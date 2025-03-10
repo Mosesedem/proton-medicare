@@ -1,436 +1,297 @@
+// /api/webhook/paystack/route.ts
 import { NextResponse } from "next/server";
-import { PrismaClient, Enrollment, User } from "@prisma/client";
-import crypto from "crypto";
-import axios from "axios";
-import { plans } from "@/lib/constants";
+import { PrismaClient } from "@prisma/client";
+// import crypto from "crypto";
 
-const prisma = new PrismaClient();
-const DEBUG_LOG_URL = "https://seller.rest/debug/debug.php";
+// Singleton PrismaClient instance
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const prisma = globalForPrisma.prisma || new PrismaClient();
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
-// Enhanced debug logging function
-const sendDebugLog = async (
-  headers: Headers,
-  body: string | object,
-  stage: string,
-  details?: any,
-) => {
-  try {
-    const logData = {
-      timestamp: new Date().toISOString(),
-      stage,
-      headers: {
-        "x-forwarded-for": headers.get("x-forwarded-for") || "",
-        "user-agent": headers.get("user-agent") || "",
-        "x-paystack-signature": headers.get("x-paystack-signature") || "",
-      },
-      body: typeof body === "string" ? JSON.parse(body) : body,
-      details,
+// Paystack webhook response type
+interface PaystackWebhookPayload {
+  event: "charge.success" | "charge.failed" | string;
+  data: {
+    id: number;
+    domain: string;
+    status: "success" | "failed" | string;
+    reference: string;
+    amount: number;
+    message: string | null;
+    gateway_response: string;
+    paid_at: string;
+    created_at: string;
+    channel: string;
+    currency: string;
+    ip_address: string;
+    metadata: any;
+    fees_breakdown: any | null;
+    log: any | null;
+    fees: number;
+    fees_split: any | null;
+    authorization: {
+      authorization_code: string;
+      bin: string;
+      last4: string;
+      exp_month: string;
+      exp_year: string;
+      channel: string;
+      card_type: string;
+      bank: string;
+      country_code: string;
+      brand: string;
+      reusable: boolean;
+      signature: string;
+      account_name: string | null;
     };
-
-    await axios.post(DEBUG_LOG_URL, JSON.stringify(logData), {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-  } catch (error) {
-    console.error("Failed to send debug log:", error);
-  }
-};
-
-// Existing interfaces remain the same
-interface PaystackWebhookData {
-  id: number;
-  reference: string;
-  amount: number;
-  currency: string;
-  status: string;
-  channel: string;
-  paid_at?: string;
-  created_at: string;
-  message?: string;
-  gateway_response?: string;
-  authorization?: {
-    authorization_code?: string;
-    bin?: string;
-    last4?: string;
-    exp_month?: string;
-    exp_year?: string;
-    card_type?: string;
-    bank?: string;
-    country_code?: string;
-    brand?: string;
-    reusable?: boolean;
-    signature?: string;
-    account_name?: string;
-    receiver_bank_account_number?: string;
-    receiver_bank?: string;
-  };
-  customer: {
-    email: string;
-    first_name: string;
-    last_name: string;
-    customer_code: string;
-    phone?: string;
-  };
-  metadata: {
-    enrollment_id: string;
-    plan: string;
-    plan_code: string;
-    is_subscription: string;
+    customer: {
+      id: number;
+      first_name: string | null;
+      last_name: string | null;
+      email: string;
+      customer_code: string;
+      phone: string | null;
+      metadata: any | null;
+      risk_action: string;
+      international_format_phone: string | null;
+    };
+    plan: any;
+    subaccount: any;
+    split: any;
+    order_id: string | null;
+    paidAt: string;
+    requested_amount: number;
+    pos_transaction_data: any | null;
+    source: {
+      type: string;
+      source: string;
+      entry_point: string;
+      identifier: string | null;
+    };
   };
 }
 
-interface MyCoverResponse {
-  reference_id?: string;
-  success: boolean;
-  message?: string;
-}
-
-interface EnrichedEnrollment extends Enrollment {
-  user: Pick<User, "id" | "gender" | "address">;
-}
-
-// Enhanced verification with logging
-const verifySignature = async (
-  request: Request,
-  body: string,
-): Promise<boolean> => {
-  const signature = request.headers.get("x-paystack-signature");
-  if (!signature || !process.env.PAYSTACK_SECRET_KEY) {
-    await sendDebugLog(
-      request.headers,
-      { error: "Missing signature or secret key" },
-      "signature_verification_failed",
-    );
-    return false;
-  }
-  const hash = crypto
-    .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
-    .update(body)
-    .digest("hex");
-
-  const isValid = hash === signature;
-  await sendDebugLog(
-    request.headers,
-    { calculated_hash: hash, received_signature: signature },
-    "signature_verification_result",
-    { isValid },
-  );
-  return isValid;
-};
-
-const planIdData = plans.map((plan) => {
-  return {
-    id: plan.id,
-    name: plan.name,
-    type: plan.type,
-    provider: plan.provider,
-    basePrice: plan.basePrice,
-    description: plan.description,
-    features: plan.features,
-    additionalBenefits: plan.additionalBenefits,
-  };
-});
-
-// Enhanced MyCover sync with logging
-const syncWithMyCoverAPI = async (
-  enrollment: EnrichedEnrollment,
-  headers: Headers,
-): Promise<MyCoverResponse> => {
-  await sendDebugLog(headers, enrollment, "mycover_sync_started");
-
-  if (!process.env.MYCOVER_API_KEY) {
-    throw new Error("MYCOVER_API_KEY is not configured");
-  }
-
-  const convertDateToStandard = (date: Date) => {
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(date.getUTCDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  const formattedDateOfBirth = convertDateToStandard(enrollment.dateOfBirth);
-
-  const selectedPlan = planIdData.find((plan) => plan.id === enrollment.planId);
-  if (!selectedPlan) {
-    await sendDebugLog(
-      headers,
-      { error: `Plan not found: ${enrollment.planId}` },
-      "mycover_sync_plan_error",
-    );
-    throw new Error(`Plan not found for ID: ${enrollment.planId}`);
-  }
-
-  let apiUrl = "";
-  let enrollmentData = {};
-
-  switch (selectedPlan.provider) {
-    case "bastion":
-      apiUrl = "https://api.mycover.ai/v1/products/bastion/buy-health";
-      enrollmentData = {
-        first_name: enrollment.firstName,
-        last_name: enrollment.lastName,
-        email: enrollment.email,
-        phone_number: enrollment.phone,
-        gender: enrollment.gender,
-        marital_status: enrollment.maritalStatus,
-        image_url: enrollment.headshotUrl,
-        date_of_birth: formattedDateOfBirth,
-        payment_plan: 1,
-        product_id: enrollment.planId,
-      };
-      break;
-    case "hygeia":
-      apiUrl = "https://api.mycover.ai/v1/products/mcg/buy-flexi-care";
-      enrollmentData = {
-        first_name: enrollment.firstName,
-        last_name: enrollment.lastName,
-        email: enrollment.email,
-        phone: enrollment.phone,
-        gender: enrollment.gender,
-        dob: formattedDateOfBirth,
-        image_url: enrollment.headshotUrl,
-        product_id: enrollment.planId,
-        payment_plan: 1,
-      };
-      break;
-    case "wella":
-      apiUrl = "https://api.mycover.ai/v1/products/wella/buy-health-malaria";
-      enrollmentData = {
-        first_name: enrollment.firstName,
-        last_name: enrollment.lastName,
-        email: enrollment.email,
-        phone_number: enrollment.phone,
-        date_of_birth: formattedDateOfBirth,
-        gender: enrollment.gender,
-        address: enrollment.user.address,
-        image_url: enrollment.headshotUrl,
-        payment_plan: 1,
-        number_of_beneficiaries: enrollment.numberOfBeneficiaries,
-        beneficiaries: enrollment.beneficiaries,
-        product_id: enrollment.planId,
-      };
-      break;
-    case "proton":
-      apiUrl = "";
-      enrollmentData = {
-        first_name: enrollment.firstName,
-        last_name: enrollment.lastName,
-        email: enrollment.email,
-        phone_number: enrollment.phone,
-        date_of_birth: formattedDateOfBirth,
-        gender: enrollment.user.gender,
-        address: enrollment.user.address,
-        image_url: enrollment.headshotUrl,
-        payment_plan: enrollment.duration,
-        number_of_beneficiaries: enrollment.numberOfBeneficiaries,
-        beneficiaries: enrollment.beneficiaries,
-        product_id: enrollment.planId,
-      };
-      break;
-    default:
-      throw new Error(`Invalid plan selection: ${selectedPlan.provider}`);
-  }
-
-  try {
-    await sendDebugLog(
-      headers,
-      { url: apiUrl, data: enrollmentData },
-      "mycover_api_request",
-    );
-
-    const response = await axios.post<MyCoverResponse>(apiUrl, enrollmentData, {
-      headers: {
-        Authorization: `Bearer ${process.env.MYCOVER_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    await sendDebugLog(headers, response.data, "mycover_api_response");
-
-    if (response.status !== 200) {
-      throw new Error(`MyCover API returned status ${response.status}`);
-    }
-
-    return response.data;
-  } catch (error) {
-    await sendDebugLog(headers, { error }, "mycover_api_error");
-    throw error;
-  }
-};
+// Verify Paystack signature
+// function verifySignature(
+//   body: string,
+//   signature: string | null,
+//   secret: string
+// ): boolean {
+//   if (!signature) return false;
+//   const hash = crypto.createHmac("sha512", secret).update(body).digest("hex");
+//   return hash === signature;
+// }
 
 export async function POST(request: Request) {
+  let rawBody: string = "";
+  let payload: PaystackWebhookPayload | undefined;
+
   try {
-    const body = await request.text();
-    await sendDebugLog(request.headers, body, "request_received");
+    // Read raw body
+    rawBody = await request.text();
+    console.log("Raw webhook body:", rawBody);
 
-    const isSignatureValid = await verifySignature(request, body);
-    if (!isSignatureValid) {
-      await sendDebugLog(request.headers, body, "invalid_signature");
+    if (!rawBody) {
       return NextResponse.json(
-        { success: false, error: "Invalid signature" },
-        { status: 401 },
+        { success: false, message: "Empty request body" },
+        { status: 400 }
       );
     }
 
-    const payload = JSON.parse(body);
-    const { event, data } = payload as {
-      event: string;
-      data: PaystackWebhookData;
-    };
-    await sendDebugLog(request.headers, { event, data }, "payload_parsed");
-
-    if (event !== "charge.success" && event !== "charge.failed") {
-      await sendDebugLog(request.headers, { event }, "event_ignored");
-      return NextResponse.json({ success: true }, { status: 200 });
+    // Parse payload
+    try {
+      payload = JSON.parse(rawBody);
+      console.log(
+        "Received webhook payload:",
+        JSON.stringify(payload, null, 2)
+      );
+    } catch (parseError) {
+      console.error("Failed to parse webhook payload:", parseError);
+      return NextResponse.json(
+        { success: false, message: "Invalid JSON payload" },
+        { status: 400 }
+      );
     }
 
-    const enrollmentId = parseInt(data.metadata.enrollment_id);
-    const enrollment = await prisma.enrollment.findUnique({
-      where: { id: enrollmentId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            gender: true,
-            address: true,
-          },
+    // Verify Paystack signature
+    // const signature = request.headers.get("x-paystack-signature");
+    // const secret = process.env.PAYSTACK_SECRET_KEY;
+    // if (!secret) {
+    //   console.error("PAYSTACK_SECRET_KEY not configured");
+    //   return NextResponse.json(
+    //     { success: false, message: "Server configuration error" },
+    //     { status: 500 }
+    //   );
+    // }
+
+    // const isValid = verifySignature(rawBody, signature, secret);
+    // if (!isValid) {
+    //   console.error("Invalid Paystack signature");
+    //   return NextResponse.json(
+    //     { success: false, message: "Invalid signature" },
+    //     { status: 401 }
+    //   );
+    // }
+
+    // Check payload structure
+    if (!payload || !payload.event || !payload.data) {
+      return NextResponse.json(
+        { success: false, message: "Invalid payload structure" },
+        { status: 400 }
+      );
+    }
+
+    // Only process charge.success events
+    if (payload.event !== "charge.success") {
+      return NextResponse.json(
+        { success: true, message: `Event ${payload.event} not processed` },
+        { status: 200 }
+      );
+    }
+
+    const { data } = payload;
+    const { reference, amount, status, customer, paidAt } = data;
+    const parsedAmount = amount / 100; // Convert from kobo to NGN
+
+    // Find the pending payment
+    const pendingPayment = await prisma.pendingPayment.findUnique({
+      where: { reference },
+      include: { enrollment: true },
+    });
+
+    if (!pendingPayment) {
+      console.log(`No pending payment found for reference: ${reference}`);
+      return NextResponse.json(
+        { success: false, message: "Pending payment not found" },
+        { status: 404 }
+      );
+    }
+
+    // Map status
+    const paymentStatus = status === "success" ? "completed" : "failed";
+    const transactionStatus =
+      paymentStatus === "completed" ? "Success" : "Failed";
+
+    // Calculate commission (10% of amount, capped at 10,000)
+    const commission = Math.min(parsedAmount * 0.1, 10000);
+
+    // Handle metadata
+    let metadata = {};
+    try {
+      if (typeof data.metadata === "string") {
+        metadata = JSON.parse(data.metadata);
+      } else if (data.metadata && typeof data.metadata === "object") {
+        metadata = data.metadata;
+      }
+    } catch (metadataError) {
+      console.error("Error parsing metadata:", metadataError);
+    }
+
+    // Process within a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Check for duplicate payment
+      const existingPayment = await tx.payment.findUnique({
+        where: { reference },
+      });
+      if (existingPayment) {
+        console.log(`Payment already processed for reference: ${reference}`);
+        return { payment: existingPayment, transaction: null }; // Early return if already processed
+      }
+
+      // Create Payment record
+      const payment = await tx.payment.create({
+        data: {
+          userId: pendingPayment.userId,
+          enrollmentId: pendingPayment.enrollmentId,
+          amount: parsedAmount,
+          reference: reference,
+          provider: "paystack",
+          // type: (metadata as any).is_subscription ? "subscription" : "onetime",
+          status: paymentStatus,
+          planCode:
+            pendingPayment.planCode || (metadata as any).plan_code || "",
+          createdAt: new Date(paidAt),
         },
-      },
+      });
+
+      // Update PendingPayment
+      await tx.pendingPayment.update({
+        where: { id: pendingPayment.id },
+        data: {
+          paymentid: payment.id,
+          status: paymentStatus,
+        },
+      });
+
+      // Update Enrollment
+      await tx.enrollment.update({
+        where: { id: pendingPayment.enrollmentId },
+        data: {
+          paymentStatus: paymentStatus === "completed" ? "paid" : "pending",
+          lastPaymentDate: new Date(paidAt),
+          reference: reference,
+          amount: parsedAmount,
+          status:
+            paymentStatus === "completed"
+              ? "active"
+              : pendingPayment.enrollment.status,
+          //   email: customer.email || pendingPayment.email,
+          //   firstName: customer.first_name || (metadata as any).first_name || "",
+          //   lastName: customer.last_name || (metadata as any).last_name || "",
+        },
+      });
+
+      // Create Transaction record
+      const transaction = await tx.transaction.create({
+        data: {
+          amount: parsedAmount,
+          status: transactionStatus,
+          type: (metadata as any).is_subscription ? "Renewal" : "OneTime",
+          commission: commission,
+          userId: pendingPayment.userId,
+          planId: pendingPayment.planCode,
+          enrollmentId: pendingPayment.enrollmentId,
+        },
+      });
+
+      return { payment, transaction };
     });
 
-    await sendDebugLog(
-      request.headers,
-      { enrollmentId, found: !!enrollment },
-      "enrollment_lookup",
-    );
-
-    if (!enrollment) {
-      await sendDebugLog(
-        request.headers,
-        { error: `Enrollment not found: ${enrollmentId}` },
-        "enrollment_not_found",
-      );
-      throw new Error(`Enrollment not found for ID: ${enrollmentId}`);
-    }
-    // Create payment record
-    const payment = await prisma.payment.create({
+    return NextResponse.json({
+      success: true,
+      message: "Payment verified and processed",
       data: {
-        paystackId: data.id.toString(),
-        reference: data.reference,
-        amount: data.amount / 100,
-        currency: data.currency,
-        status: data.status,
-        channel: data.channel,
-        paidAt:
-          event === "charge.success" && data.paid_at
-            ? new Date(data.paid_at)
-            : null,
-        createdAt: new Date(data.created_at),
-        userId: enrollment.userId,
-        enrollmentId,
-        errorMessage: data.message,
-        gatewayResponse: data.gateway_response,
-        plan: data.metadata.plan,
-        planCode: data.metadata.plan_code,
-        isSubscription: data.metadata.is_subscription === "true",
-        enrollmentMetadataId: data.metadata.enrollment_id,
-        customerEmail: data.customer.email,
-        customerName:
-          `${data.customer.first_name} ${data.customer.last_name}`.trim(),
-        customerCode: data.customer.customer_code,
-        customerPhone: data.customer.phone,
-        authorizationCode: data.authorization?.authorization_code,
-        cardBin: data.authorization?.bin,
-        cardLast4: data.authorization?.last4,
-        cardExpMonth: data.authorization?.exp_month,
-        cardExpYear: data.authorization?.exp_year,
-        cardType: data.authorization?.card_type,
-        cardBank: data.authorization?.bank,
-        cardCountryCode: data.authorization?.country_code,
-        cardBrand: data.authorization?.brand,
-        cardReusable: data.authorization?.reusable ?? false,
-        cardSignature: data.authorization?.signature,
-        cardAccountName: data.authorization?.account_name,
-        cardReceiverBankAccountNumber:
-          data.authorization?.receiver_bank_account_number,
-        cardReceiverBank: data.authorization?.receiver_bank,
+        paymentId: result.payment.id,
+        transactionId: result.transaction?.id || null,
+        status: paymentStatus,
+        reference: reference,
       },
     });
+  } catch (error) {
+    console.error("Paystack webhook processing error:", error);
 
-    await sendDebugLog(request.headers, { payment }, "payment_created");
-
-    // Update enrollment
-    const updatedEnrollment = await prisma.enrollment.update({
-      where: { id: enrollmentId },
-      data: {
-        status: event === "charge.success" ? "completed" : "payment_failed",
-        paymentStatus: event === "charge.success" ? "paid" : "failed",
-        lastPaymentDate:
-          event === "charge.success" && data.paid_at
-            ? new Date(data.paid_at)
-            : undefined,
-        lastPaymentError:
-          event === "charge.failed" ? data.gateway_response : null,
-      },
-    });
-
-    await sendDebugLog(
-      request.headers,
-      { updatedEnrollment },
-      "enrollment_updated",
-    );
-
-    if (event === "charge.success") {
+    // Attempt to update pending payment if reference is available
+    if (payload?.data?.reference) {
       try {
-        const myCoverResponse = await syncWithMyCoverAPI(
-          enrollment,
-          request.headers,
-        );
-
-        const syncedEnrollment = await prisma.enrollment.update({
-          where: { id: enrollmentId },
-          data: {
-            myCoverSyncStatus: "success",
-            myCoverReferenceId: myCoverResponse.reference_id ?? null,
-          },
+        await prisma.pendingPayment.update({
+          where: { reference: payload.data.reference },
+          data: { status: "failed" },
         });
-
-        await sendDebugLog(
-          request.headers,
-          { myCoverResponse, syncedEnrollment },
-          "mycover_sync_success",
-        );
-      } catch (syncError) {
-        console.error("MyCover API sync failed:", syncError);
-
-        const failedSync = await prisma.enrollment.update({
-          where: { id: enrollmentId },
-          data: {
-            myCoverSyncStatus: "failed",
-            myCoverSyncError:
-              syncError instanceof Error
-                ? syncError.message
-                : "Unknown error occurred",
-          },
-        });
-
-        await sendDebugLog(
-          request.headers,
-          { error: syncError, failedSync },
-          "mycover_sync_failed",
-        );
+      } catch (updateError) {
+        console.error("Failed to update pending payment:", updateError);
       }
     }
 
-    return NextResponse.json({ success: true }, { status: 200 });
-  } catch (error) {
-    await sendDebugLog(request.headers, { error }, "webhook_error");
-    console.error("Webhook processing error:", error);
     return NextResponse.json(
-      { success: false, error: "Webhook processing failed" },
-      { status: 500 },
+      {
+        success: false,
+        message: "Webhook processing error",
+        error: error instanceof Error ? error.message : String(error),
+        rawBody: rawBody
+          ? rawBody.substring(0, 200) + "..."
+          : "No body received",
+      },
+      { status: 500 }
     );
   } finally {
     await prisma.$disconnect();

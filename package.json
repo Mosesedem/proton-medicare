@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.8.0",
     "@clerk/nextjs": "^6.10.6",
     "@heroicons/react": "^1.0.6",
     "@hookform/resolvers": "^3.10.0",
@@ -71,6 +72,7 @@
     "react-intersection-observer": "^9.13.1",
     "react-markdown": "^9.0.3",
     "react-router-dom": "^6.28.1",
+    "recharts": "^2.15.1",
     "resend": "^4.1.2",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.5.5",

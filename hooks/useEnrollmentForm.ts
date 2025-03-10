@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { plans, durations } from "@/lib/constants";
-import { toast } from "react-hot-toast";
+// import { toast, Toaster } from "sonner";
 
 export interface FormData {
   duration: string;
@@ -39,7 +39,7 @@ export function useEnrollmentForm() {
   useEffect(() => {
     const selectedPlan = plans.find((p) => p.name === formData.plan);
     const selectedDuration = durations.find(
-      (d) => d.value === formData.duration,
+      (d) => d.value === formData.duration
     );
     if (selectedPlan && selectedDuration) {
       const basePrice = selectedPlan.basePrice;

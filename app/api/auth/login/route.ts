@@ -1,5 +1,4 @@
 // /api/auth/login/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -17,16 +16,16 @@ export async function POST(req: NextRequest) {
     if (!email || !password) {
       return NextResponse.json(
         { success: false, message: "Email and password are required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
 
-    if (!user || !bcrypt.compareSync(password, user.password)) {
+    if (!user || !bcrypt.compareSync(password, user.password as string)) {
       return NextResponse.json(
         { success: false, message: "Invalid email or password" },
-        { status: 401 },
+        { status: 401 }
       );
     }
 
@@ -37,17 +36,16 @@ export async function POST(req: NextRequest) {
           message: "Please verify your email address",
           redirect: "/auth/verify-email",
         },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET!,
-      { expiresIn: "7d" },
+      { expiresIn: "7d" }
     );
 
-    // Set the token as an httpOnly cookie
     const cookieStore = await cookies();
     cookieStore.set({
       name: "auth_token",
@@ -55,7 +53,8 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
+      sameSite: "strict",
     });
 
     return NextResponse.json({
@@ -68,13 +67,16 @@ export async function POST(req: NextRequest) {
         firstName: user.firstName,
         lastName: user.lastName,
         phone: user.phoneNumber,
+        role: user.role,
       },
     });
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }

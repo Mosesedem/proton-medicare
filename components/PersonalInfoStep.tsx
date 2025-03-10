@@ -25,6 +25,7 @@ export function PersonalInfoStep({
           name="firstName"
           value={formData.firstName}
           onChange={handleInputChange}
+          placeholder="First Name Example: John"
           required
         />
       </div>
@@ -35,6 +36,7 @@ export function PersonalInfoStep({
           name="lastName"
           value={formData.lastName}
           onChange={handleInputChange}
+          placeholder="Last Name: Example: Tolu"
           required
         />
       </div>
@@ -45,6 +47,7 @@ export function PersonalInfoStep({
           name="email"
           type="email"
           value={formData.email}
+          placeholder="Email Example: you@theemail.com"
           onChange={handleInputChange}
           required
         />
@@ -56,6 +59,7 @@ export function PersonalInfoStep({
           name="phone"
           type="tel"
           value={formData.phone}
+          placeholder="Phone Example: 07069737196"
           onChange={handleInputChange}
           required
         />

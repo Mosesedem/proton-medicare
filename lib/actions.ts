@@ -1,52 +1,89 @@
-// // actions.ts
-// "use server"
+"use server";
+import prisma from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+import { requireAuth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-// import { revalidatePath } from "next/cache"
+export async function createUser(formData: FormData) {
+  const name = formData.get("name") as string;
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
 
-// export type UserInfo = {
-//   name: string
-//   planId: string
-//   hmoId: string
-//   walletBalance: number
-// }
+  // if (!name || !email || !password) {
+  //   throw new Error("Missing required fields");
+  // }
 
-// export async function getUserInfo(): Promise<UserInfo> {
-//   // Replace with your actual database query
-//   const user = await db.user.findFirst({
-//     where: { id: await getCurrentUserId() },
-//     select: {
-//       name: true,
-//       planId: true,
-//       hmoId: true,
-//       walletBalance: true,
-//     },
-//   })
+  const user = await requireAuth();
 
-//   if (!user) throw new Error("User not found")
-//   return user
-// }
+  if (!user) {
+    redirect("/sign-in");
+  }
 
-// export async function makePayment(amount: number) {
-//   try {
-//     // Replace with your actual payment logic
-//     await db.transaction.create({
-//       data: {
-//         userId: await getCurrentUserId(),
-//         amount,
-//         type: "PAYMENT",
-//       },
-//     })
+  const [firstName, lastName] = name.split(" ");
 
-//     await db.user.update({
-//       where: { id: await getCurrentUserId() },
-//       data: {
-//         walletBalance: { increment: amount },
-//       },
-//     })
+  await prisma.user.create({
+    data: {
+      firstName,
+      lastName,
+      email,
+      password,
+      merchantId: user.id,
+    },
+  });
 
-//     revalidatePath("/dashboard")
-//     return { success: true }
-//   } catch (error) {
-//     return { success: false, error: "Payment failed" }
-//   }
-// }
+  revalidatePath("/dashboard/users");
+}
+
+export async function createWithdrawal(amount: number, bankAccountId: string) {
+  const user = await requireAuth();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  type UserWithRelations = {
+    transactions: { commission: number }[];
+    withdrawals: { amount: number }[];
+  } & NonNullable<Awaited<ReturnType<typeof prisma.user.findUnique>>>;
+
+  const userWithData = (await prisma.user.findUnique({
+    where: { id: user.id },
+    include: {
+      transactions: {
+        where: {
+          status: "Success",
+        },
+      },
+      withdrawals: true,
+    },
+  })) as UserWithRelations;
+
+  if (!user || !user.id) {
+    throw new Error("User not found");
+  }
+
+  // Calculate available balance
+  const totalCommission = userWithData.transactions.reduce(
+    (acc, curr) => acc + curr.commission,
+    0
+  );
+  const totalWithdrawn = userWithData.withdrawals.reduce(
+    (acc, curr) => acc + curr.amount,
+    0
+  );
+  const availableBalance = totalCommission - totalWithdrawn;
+
+  if (amount > availableBalance) {
+    throw new Error("Insufficient balance");
+  }
+
+  await prisma.withdrawal.create({
+    data: {
+      amount,
+      status: "Pending",
+      userId: user.id,
+      bankAccountId,
+    },
+  });
+
+  revalidatePath("/dashboard/commissions");
+}

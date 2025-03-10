@@ -129,7 +129,7 @@ export function AdditionalInfoStep({
           </Select>
         </div>
         <div className="text-2md font-bold">
-          Total Price: ${price.toFixed(2)}
+          Total Price: ₦ {price.toLocaleString("en-NG")}
         </div>
       </div>
       <hr />

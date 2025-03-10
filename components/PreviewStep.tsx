@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 interface PreviewStepProps {
   formData: {
     firstName: string;
@@ -50,10 +52,12 @@ export function PreviewStep({ formData, previewImage }: PreviewStepProps) {
         </div>
         <div>
           {previewImage && (
-            <img
+            <Image
               src={previewImage || "/placeholder.svg"}
               alt="Headshot Preview"
               className="h-auto max-w-full rounded-lg"
+              width={300}
+              height={300}
             />
           )}
         </div>

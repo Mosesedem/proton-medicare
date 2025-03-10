@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { type NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
@@ -7,38 +8,40 @@ import { randomBytes } from "crypto";
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 
-// Initialize Prisma Client
 const prisma = new PrismaClient();
-
-// Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Validation schema for registration
+// Validation schema
 const registerSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().email("Invalid email format"),
+  firstName: z
+    .string()
+    .min(2, "First name must be at least 2 characters")
+    .trim(),
+  lastName: z.string().min(2, "Last name must be at least 2 characters").trim(),
+  email: z.string().email("Invalid email format").toLowerCase(),
   phoneNumber: z
     .string()
-    .regex(/^\+?[0-9]\d{1,14}$/, "Invalid phone number format"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  // .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-  // .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-  // .regex(/[0-9]/, "Password must contain at least one number"),
+    .regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(
+      /[^A-Za-z0-9]/,
+      "Password must contain at least one special character"
+    ),
 });
 
-// Type for registration data
 type RegisterData = z.infer<typeof registerSchema>;
 
-// Generate verification token
 function generateVerificationToken(): { token: string; expires: Date } {
   const token = randomBytes(32).toString("hex");
-  const expires = new Date();
-  expires.setHours(expires.getHours() + 24); // 24 hour expiration
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
   return { token, expires };
 }
 
-// Email template
 function getEmailTemplate(firstName: string, verificationLink: string) {
   return `
 <!DOCTYPE html>
@@ -129,18 +132,23 @@ function getEmailTemplate(firstName: string, verificationLink: string) {
   `;
 }
 
-// Send verification email
 async function sendVerificationEmail(
   email: string,
   firstName: string,
-  verificationToken: string,
+  verificationToken: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}/verify?token=${verificationToken}`;
+    if (!process.env.NEXT_PUBLIC_APP_URL) {
+      throw new Error("NEXT_PUBLIC_APP_URL is not configured");
+    }
 
-    const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}/verify?token=${encodeURIComponent(verificationToken)}&email=${encodeURIComponent(email)}`;
+    const verificationLink = `${
+      process.env.NEXT_PUBLIC_APP_URL
+    }/verify?token=${encodeURIComponent(
+      verificationToken
+    )}&email=${encodeURIComponent(email)}`;
 
-    const { data, error } = await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: "Proton Medicare <hq@hq.protonmedicare.com>",
       to: email,
       subject: "✨ Verify Your ProtonMedicare Account",
@@ -152,7 +160,6 @@ async function sendVerificationEmail(
       return { success: false, error: "Failed to send verification email" };
     }
 
-    console.log("Email sent successfully:", data);
     return { success: true };
   } catch (error) {
     console.error("Email sending error:", error);
@@ -160,76 +167,69 @@ async function sendVerificationEmail(
   }
 }
 
-// Main registration handler
 export async function POST(request: NextRequest) {
   try {
+    // Validate environment variables
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET is not configured");
+    }
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY is not configured");
+    }
+
     // Parse and validate request body
     const body = await request.json();
     const validatedData = registerSchema.parse(body);
 
-    // Check for existing email (case-insensitive)
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        email: validatedData.email.toLowerCase(),
-      },
-    });
+    // Check for existing users (transaction for atomicity)
+    const [existingEmail, existingPhone] = await prisma.$transaction([
+      prisma.user.findUnique({ where: { email: validatedData.email } }),
+      prisma.user.findFirst({
+        where: { phoneNumber: validatedData.phoneNumber },
+      }),
+    ]);
 
-    if (existingUser) {
+    if (existingEmail) {
       return NextResponse.json(
         { success: false, message: "Email already registered" },
-        { status: 400 },
+        { status: 400 }
       );
     }
-
-    // Check for existing phone number
-    const existingPhone = await prisma.user.findFirst({
-      where: {
-        phoneNumber: validatedData.phoneNumber,
-      },
-    });
-
     if (existingPhone) {
       return NextResponse.json(
         { success: false, message: "Phone number already registered" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    // Generate verification token
+    // Generate verification token and hash password
     const { token: verificationToken, expires: tokenExpiry } =
       generateVerificationToken();
-
-    // Hash password
     const hashedPassword = await hash(validatedData.password, 12);
 
-    // Create user with verification token
+    // Create user
     const user = await prisma.user.create({
       data: {
         firstName: validatedData.firstName,
         lastName: validatedData.lastName,
-        email: validatedData.email.toLowerCase(),
+        email: validatedData.email,
         phoneNumber: validatedData.phoneNumber,
         password: hashedPassword,
         isVerified: false,
         verificationToken,
         tokenExpiry,
+        role: "USER", // Default role
       },
     });
 
-    // Send verification email
-    const emailResult = await sendVerificationEmail(
-      user.email,
-      user.firstName!,
-      verificationToken,
-    );
-
+    // Generate JWT
     const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET!,
-      { expiresIn: "7d" },
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
     );
 
-    // Set the token as an httpOnly cookie
+    // Set cookie
     const cookieStore = await cookies();
     cookieStore.set({
       name: "auth_token",
@@ -237,57 +237,64 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
+      sameSite: "strict" as const,
     });
 
-    // Return appropriate response based on email sending result
+    // Send verification email
+    const emailResult = await sendVerificationEmail(
+      user.email,
+      user.firstName!,
+      verificationToken
+    );
+
     return NextResponse.json({
       success: true,
       token,
       message: emailResult.success
-        ? "Account created successfully! Please check your email to verify your account."
-        : "Account created successfully! There was an issue sending the verification email. Please contact support.",
+        ? "Registration successful! Please check your email to verify your account."
+        : "Registration successful, but failed to send verification email. Please contact support.",
       user: {
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        phoneNumber: user.phoneNumber,
         isVerified: user.isVerified,
+        role: user.role,
       },
     });
   } catch (error) {
     console.error("[Registration Error]:", error);
 
-    // Handle validation errors
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        {
-          success: false,
-          message: error.errors[0].message,
-        },
-        { status: 400 },
+        { success: false, message: error.errors[0].message },
+        { status: 400 }
       );
     }
 
-    // Handle database errors
-    if (error instanceof Error && error.message.includes("Unique constraint")) {
+    if (error instanceof Error) {
+      if (error.message.includes("Unique constraint")) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Email or phone number already registered",
+          },
+          { status: 400 }
+        );
+      }
       return NextResponse.json(
-        {
-          success: false,
-          message: "This email or phone number is already registered",
-        },
-        { status: 400 },
+        { success: false, message: error.message },
+        { status: 500 }
       );
     }
 
-    // Handle all other errors
     return NextResponse.json(
-      {
-        success: false,
-        message: "An error occurred during registration",
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
+      { success: false, message: "An unexpected error occurred" },
+      { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }

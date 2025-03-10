@@ -1,6 +1,273 @@
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider = "postgresql"
+//   url      = env("DATABASE_URL")
+// }
+
+// model User {
+//   id                     String           @id @default(cuid())
+//   email                  String           @unique
+//   role                   String           @default("User")
+//   merchantId             String?          @unique
+//   name                   String?
+//   createdAt              DateTime         @default(now())
+//   updatedAt              DateTime         @updatedAt
+//   firstName              String?
+//   lastName               String?
+//   phone                  String?
+//   image                  String?
+//   phoneNumber            String?
+//   dateOfBirth            DateTime?
+//   gender                 String?
+//   address                String?
+//   password               String?          @default("123456")
+//   verificationCode       String?
+//   resetCode              String?
+//   imageUrl               String?
+//   verificationCodeExpiry DateTime?
+//   resetCodeExpiry        DateTime?
+//   verificationToken      String?          @unique
+//   tokenExpiry            DateTime?
+//   isVerified             Boolean          @default(false)
+//   emailVerified          Boolean?         @default(false)
+//   verificationPin        String?
+//   resetPin               String?
+//   resetPinExpiry         DateTime?
+//   resetAttempts          Int              @default(0)
+//   passwordUpdatedAt      DateTime?
+//   plans                  Plan[]
+//   transactions           Transaction[]
+//   withdrawals            Withdrawal[]
+//   bankAccounts           BankAccount[]
+//   referralLinks          ReferralLink[]
+//   enrollments            Enrollment[]
+//   payments               Payment[]
+//   accounts               Account[]
+//   Session                Session[]
+//   PendingPayment         PendingPayment[]
+
+//   @@map("users")
+// }
+
+// model Plan {
+//   id           String        @id @default(cuid())
+//   name         String
+//   price        Float
+//   commission   Float
+//   benefits     String[]
+//   hospitals    String[]
+//   coverage     String[]
+//   createdAt    DateTime      @default(now())
+//   updatedAt    DateTime      @updatedAt
+//   userId       String
+//   user         User          @relation(fields: [userId], references: [id])
+//   transactions Transaction[]
+// }
+
+// model Transaction {
+//   id         String   @id @default(cuid())
+//   amount     Float
+//   status     String // Success, Pending, Failed
+//   type       String // OneTime, Renewal
+//   commission Float
+//   createdAt  DateTime @default(now())
+//   updatedAt  DateTime @updatedAt
+//   userId     String
+//   user       User     @relation(fields: [userId], references: [id])
+//   planId     String
+//   plan       Plan     @relation(fields: [planId], references: [id])
+// }
+
+// model Withdrawal {
+//   id            String      @id @default(cuid())
+//   amount        Float
+//   status        String // Pending, Approved, Rejected
+//   createdAt     DateTime    @default(now())
+//   updatedAt     DateTime    @updatedAt
+//   userId        String
+//   user          User        @relation(fields: [userId], references: [id])
+//   bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
+//   bankAccountId String
+// }
+
+// model BankAccount {
+//   id            String       @id @default(cuid())
+//   bankName      String
+//   accountNumber String
+//   accountName   String
+//   createdAt     DateTime     @default(now())
+//   updatedAt     DateTime     @updatedAt
+//   userId        String
+//   user          User         @relation(fields: [userId], references: [id])
+//   withdrawals   Withdrawal[]
+// }
+
+// model ReferralLink {
+//   id        String   @id @default(cuid())
+//   code      String   @unique
+//   type      String // OneTime, Renewal
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+//   userId    String
+//   user      User     @relation(fields: [userId], references: [id])
+// }
+
+// model Account {
+//   id                String  @id @default(cuid())
+//   userId            String
+//   type              String
+//   provider          String
+//   providerAccountId String
+//   refresh_token     String? @db.Text
+//   access_token      String? @db.Text
+//   expires_at        Int?
+//   token_type        String?
+//   scope             String?
+//   id_token          String? @db.Text
+//   session_state     String?
+//   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@unique([provider, providerAccountId])
+// }
+
+// model Session {
+//   id           String   @id @default(cuid())
+//   sessionToken String   @unique
+//   userId       String
+//   expires      DateTime
+//   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+// }
+
+// model VerificationToken {
+//   identifier String
+//   token      String   @unique
+//   expires    DateTime
+
+//   @@unique([identifier, token])
+// }
+
+// model Enrollment {
+//   id                    Int              @id @default(autoincrement())
+//   firstName             String
+//   lastName              String
+//   email                 String
+//   phone                 String
+//   gender                String           @default("Female")
+//   address               String
+//   dateOfBirth           DateTime
+//   maritalStatus         String
+//   plan                  String
+//   duration              String
+//   reference             String?          @unique
+//   amount                Float
+//   paymentStatus         String
+//   headshotUrl           String
+//   headshotPath          String
+//   referral              String?
+//   userId                String
+//   createdAt             DateTime         @default(now())
+//   updatedAt             DateTime         @updatedAt
+//   planId                String
+//   status                String
+//   lastPaymentDate       DateTime
+//   lastPaymentError      String?
+//   myCoverSyncStatus     String?
+//   myCoverReferenceId    String?
+//   myCoverSyncError      String?
+//   beneficiaries         String[]
+//   numberOfBeneficiaries Int
+//   user                  User             @relation(fields: [userId], references: [id])
+//   payments              Payment[]
+//   PendingPayment        PendingPayment[]
+
+//   @@map("enrollments")
+// }
+
+// model PendingPayment {
+//   id           String   @id @default(uuid())
+//   userId       String
+//   reference    String   @unique
+//   email        String
+//   enrollmentId Int
+//   provider     String
+//   planCode     String
+//   type         String
+//   amount       Float
+//   status       String   @default("pending")
+//   createdAt    DateTime @default(now())
+//   updatedAt    DateTime @updatedAt
+
+//   user       User       @relation(fields: [userId], references: [id])
+//   enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+//   payment    Payment?   @relation("PendingToPayment", fields: [paymentid], references: [id])
+//   paymentid  Int?
+
+//   @@index([userId])
+//   @@index([enrollmentId])
+//   @@index([reference])
+// }
+
+// model Payment {
+//   id           Int       @id @default(autoincrement())
+//   paystackId   String?   @unique
+//   reference    String    @unique
+//   amount       Float
+//   currency     String?
+//   status       String?
+//   channel      String?
+//   paidAt       DateTime?
+//   createdAt    DateTime
+//   updatedAt    DateTime?
+//   userId       String
+//   enrollmentId Int
+//   fees         Float?
+//   provider     String    @default("web")
+
+//   // Error details
+//   errorMessage    String?
+//   gatewayResponse String?
+
+//   // Metadata fields
+//   plan                 String?
+//   planCode             String?
+//   isSubscription       Boolean?
+//   enrollmentMetadataId String?
+
+//   // Customer fields
+//   customerEmail String?
+//   customerName  String?
+//   customerCode  String?
+//   customerPhone String?
+
+//   // Authorization fields
+//   authorizationCode             String?
+//   cardBin                       String?
+//   cardLast4                     String?
+//   cardExpMonth                  String?
+//   cardExpYear                   String?
+//   cardType                      String?
+//   cardBank                      String?
+//   cardCountryCode               String?
+//   cardBrand                     String?
+//   cardReusable                  Boolean @default(false)
+//   cardSignature                 String?
+//   cardAccountName               String?
+//   cardReceiverBankAccountNumber String?
+//   cardReceiverBank              String?
+
+//   user           User             @relation(fields: [userId], references: [id])
+//   enrollment     Enrollment       @relation(fields: [enrollmentId], references: [id])
+//   PendingPayment PendingPayment[] @relation("PendingToPayment")
+
+//   @@index([userId])
+//   @@index([enrollmentId])
+// }
+
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearchPostgres"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -9,57 +276,235 @@ datasource db {
 }
 
 model User {
-  id                     Int          @id @default(autoincrement())
-  email                  String       @unique
+  id                     String           @id @default(cuid())
+  email                  String           @unique
+  role                   String           @default("User")
+  merchantId             String?          @unique
+  name                   String?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
   firstName              String?
   lastName               String?
   phone                  String?
+  image                  String?
   phoneNumber            String?
   dateOfBirth            DateTime?
   gender                 String?
   address                String?
-  password               String
-  createdAt              DateTime     @default(now())
-  updatedAt              DateTime     @updatedAt
+  password               String?          @default("123456")
   verificationCode       String?
   resetCode              String?
   imageUrl               String?
   verificationCodeExpiry DateTime?
   resetCodeExpiry        DateTime?
-  verificationToken      String?      @unique
+  verificationToken      String?          @unique
   tokenExpiry            DateTime?
-  isVerified             Boolean      @default(false)
+  isVerified             Boolean          @default(false)
+  emailVerified          Boolean?         @default(false)
   verificationPin        String?
   resetPin               String?
   resetPinExpiry         DateTime?
-  resetAttempts          Int          @default(0)
+  resetAttempts          Int              @default(0)
   passwordUpdatedAt      DateTime?
+  // plans                  Plan[]
+  transactions           Transaction[]
+  withdrawals            Withdrawal[]
+  bankAccounts           BankAccount[]
+  referralLinks          ReferralLink[]
   enrollments            Enrollment[]
   payments               Payment[]
+  accounts               Account[]
+  Session                Session[]
+  PendingPayment         PendingPayment[]
+  HealthPlan             HealthPlan[]
+  Plan                   Plan[]
 
   @@map("users")
 }
 
+model HealthPlan {
+  id                     String    @id @default(cuid())
+  userId                 String
+  enrollmentId           Int
+  firstName              String
+  lastName               String
+  email                  String
+  phone                  String
+  planId                 String?
+  status                 String    @default("pending")
+  startDate              DateTime
+  endDate                DateTime
+  expired                Boolean   @default(false)
+  expirationDate         DateTime
+  activationDate         DateTime
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  imagePath              String
+  hospitalListUrl        String
+  renewalDate            DateTime? // Made optional since it can be null
+  myCoverReferenceId     String?
+  activationAttempts     Int       @default(0)
+  lastActivationAttempt  DateTime?
+  activationErrorMessage String?
+
+  // New fields to match webhook response
+  myCoverPolicyId  String? // id from webhook
+  appMode          String? // test/prod
+  amount           Float?
+  providerPolicyId Int?
+  dob              DateTime?
+  address          String?
+  groupId          Int?
+  genderId         Int?
+  dataConsent      Boolean   @default(false)
+  idCardUrl        String?
+  productId        String?
+  paymentPlan      Int?
+  profit           Float?
+  buyerId          String?
+  distributorId    String?
+  providerId       String?
+  purchaseId       String?
+  geniusPrice      Float?
+  marketPrice      Float?
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+  User       User       @relation(fields: [userId], references: [id])
+  Plan       Plan[]
+
+  @@index([enrollmentId])
+  @@index([userId])
+  @@index([status])
+  @@map("healthplans")
+}
+
+model Plan {
+  id           String        @id @default(cuid())
+  name         String?
+  price        Float?
+  commission   Float?
+  provider     String?
+  description  String?
+  benefits     String[]
+  hospitals    String[]
+  coverage     String[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  userId       String
+  healthPlans  HealthPlan[]
+  user         User          @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+
+  Enrollment Enrollment[]
+}
+
+model Transaction {
+  id           String     @id @default(cuid())
+  amount       Float
+  status       String // Success, Pending, Failed
+  type         String // OneTime, Renewal
+  commission   Float
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  planId       String
+  enrollmentId Int
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  // plan         Plan       @relation(fields: [planId], references: [id])
+
+  Plan Plan[]
+}
+
+model Withdrawal {
+  id            String      @id @default(cuid())
+  amount        Float
+  status        String // Pending, Approved, Rejected
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
+  bankAccountId String
+}
+
+model BankAccount {
+  id            String       @id @default(cuid())
+  bankName      String
+  accountNumber String
+  accountName   String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  withdrawals   Withdrawal[]
+}
+
+model ReferralLink {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  type      String // OneTime, Renewal
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
 model Enrollment {
-  id                    Int       @id @default(autoincrement())
+  id                    Int              @id @default(autoincrement())
   firstName             String
   lastName              String
   email                 String
   phone                 String
-  gender                String    @default("Female")
+  gender                String           @default("Female")
   address               String
   dateOfBirth           DateTime
   maritalStatus         String
   plan                  String
   duration              String
+  reference             String?          @unique
   amount                Float
   paymentStatus         String
   headshotUrl           String
   headshotPath          String
   referral              String?
-  userId                Int
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  userId                String // Changed from Int to String to match User.id
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
   planId                String
   status                String
   lastPaymentDate       DateTime
@@ -69,39 +514,70 @@ model Enrollment {
   myCoverSyncError      String?
   beneficiaries         String[]
   numberOfBeneficiaries Int
-  user                  User      @relation(fields: [userId], references: [id])
+  user                  User             @relation(fields: [userId], references: [id])
   payments              Payment[]
+  PendingPayment        PendingPayment[]
+  HealthPlan            HealthPlan[]
+  transactions          Transaction[]
+  Plan                  Plan[]
 
   @@map("enrollments")
 }
 
+model PendingPayment {
+  id           String   @id @default(uuid())
+  userId       String
+  reference    String   @unique
+  email        String
+  enrollmentId Int
+  provider     String
+  planCode     String
+  type         String
+  amount       Float
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id])
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+  payment    Payment?   @relation("PendingToPayment", fields: [paymentid], references: [id])
+  paymentid  Int?
+
+  @@index([userId])
+  @@index([enrollmentId])
+  @@index([reference])
+}
+
 model Payment {
   id           Int       @id @default(autoincrement())
-  paystackId   String    @unique
+  paystackId   String?   @unique
   reference    String    @unique
   amount       Float
-  currency     String
-  status       String
-  channel      String
+  currency     String?
+  status       String?
+  channel      String?
   paidAt       DateTime?
   createdAt    DateTime
-  userId       Int
+  updatedAt    DateTime?
+  userId       String // Changed from Int to String to match User.id
   enrollmentId Int
+  fees         Float?
+  provider     String    @default("web")
 
   // Error details
   errorMessage    String?
   gatewayResponse String?
 
   // Metadata fields
-  plan                 String
-  planCode             String
-  isSubscription       Boolean
-  enrollmentMetadataId String
+  plan                 String?
+  planCode             String?
+  isSubscription       Boolean?
+  enrollmentMetadataId String?
 
   // Customer fields
-  customerEmail String
-  customerName  String
-  customerCode  String
+  customerEmail String?
+  customerName  String?
+  customerCode  String?
   customerPhone String?
 
   // Authorization fields
@@ -120,8 +596,9 @@ model Payment {
   cardReceiverBankAccountNumber String?
   cardReceiverBank              String?
 
-  user       User       @relation(fields: [userId], references: [id])
-  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+  user           User             @relation(fields: [userId], references: [id])
+  enrollment     Enrollment       @relation(fields: [enrollmentId], references: [id])
+  PendingPayment PendingPayment[] @relation("PendingToPayment")
 
   @@index([userId])
   @@index([enrollmentId])

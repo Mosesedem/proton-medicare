@@ -34,7 +34,7 @@
 
 import React from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AlertCircle, CreditCard, RefreshCw } from "lucide-react";
 
@@ -51,6 +51,23 @@ const PaymentChoiceDialog = ({
   price: number;
   duration: string;
 }) => {
+  const getDurationLabel = (duration: string) => {
+    const durationNumber = parseInt(duration);
+    switch (durationNumber) {
+      case 1:
+        return "Monthly";
+      case 3:
+        return "Quarterly";
+      case 6:
+        return "Bi-annually";
+      case 12:
+        return "Yearly";
+      default:
+        return `${duration} Months`;
+    }
+  };
+
+  const durationLabel = getDurationLabel(duration);
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-h-[80vh] max-w-lg overflow-y-auto sm:max-w-xl">
@@ -68,11 +85,11 @@ const PaymentChoiceDialog = ({
               </div>
               <h3 className="text-lg font-semibold">Subscription Based</h3>
               <p className="text-center text-sm text-gray-500">
-                Auto-renew at the end of {duration} months to maintain
-                continuous coverage
+                Auto-renew at the end of each {durationLabel.toLowerCase()}{" "}
+                period to maintain continuous coverage
               </p>
               <div className="text-2xl font-bold text-primary">
-                ${price}/{duration} Months
+                ₦ {price.toLocaleString("en-NG")}/{durationLabel}
               </div>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
@@ -101,7 +118,9 @@ const PaymentChoiceDialog = ({
               <p className="text-center text-sm text-gray-500">
                 Single payment for {duration} months worth of coverage
               </p>
-              <div className="text-2xl font-bold text-primary">${price}</div>
+              <div className="text-2xl font-bold text-primary">
+                ₦ {price.toLocaleString("en-NG")}
+              </div>
               <div className="flex items-start gap-2 rounded-lg bg-yellow-50 p-3">
                 <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-yellow-600" />
                 <p className="text-sm text-yellow-700">

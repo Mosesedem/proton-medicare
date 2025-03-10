@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // components/EmailVerificationForm.tsx
 "use client";
 
@@ -6,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 // import { resendVerificationCode } from "@/app/api/verifyemail/route";
-import { useFormState } from "react-dom";
+// import { useFormState } from "react-dom";
 
-interface EmailVerificationFormProps {
-  email: string;
-  onPinRequest: () => void;
-  onEditEmail: () => void;
-}
+// interface EmailVerificationFormProps {
+//   email: string;
+//   onPinRequest: () => void;
+//   onEditEmail: () => void;
+// }
 
 export function EmailVerificationForm({
   email,
