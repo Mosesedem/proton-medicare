@@ -75,7 +75,7 @@ const plans: Plan[] = importedPlans.map((plan) => ({
   name: plan.name,
   description: plan.description,
   // Convert basePrice to a formatted string because the price in your component is expected as a string like "$19/month"
-  price: `$${plan.basePrice}/month`,
+  price: `₦${plan.basePrice.toLocaleString("en-NG")}/month`,
   features: plan.features,
   additionalBenefits: plan.additionalBenefits || [],
 }));
@@ -388,7 +388,8 @@ export default function Home() {
 
       {/* Plans Section */}
       <section className="w-full bg-muted/50 py-12 md:py-24">
-        <div className="container mx-auto space-y-12 rounded-t-3xl bg-background px-4 py-8">
+        <div className="container mx-auto items-center space-y-12 rounded-t-3xl bg-background px-4 py-8">
+          {/* <div className="mx-auto space-y-12 px-4 py-8"> */}
           <h2 className="mb-8 text-center text-3xl font-bold tracking-tighter">
             Our Plans
           </h2>
