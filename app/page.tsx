@@ -388,7 +388,7 @@ export default function Home() {
 
       {/* Plans Section */}
       <section className="w-full bg-muted/50 py-12 md:py-24">
-        <div>
+        <div className="container mx-auto space-y-12 rounded-t-3xl bg-background px-4 py-8">
           <h2 className="mb-8 text-center text-3xl font-bold tracking-tighter">
             Our Plans
           </h2>
