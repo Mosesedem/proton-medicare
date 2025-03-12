@@ -8,6 +8,7 @@ import {
   Shield,
   Key,
 } from "lucide-react";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { redirect } from "next/navigation";
@@ -20,7 +21,7 @@ import { plans } from "@/lib/constants";
 async function getUserData(userId: string) {
   return await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, firstName: true, lastName: true },
+    select: { id: true, firstName: true, lastName: true, image: true },
   });
 }
 
@@ -257,9 +258,19 @@ export default async function NigerianInsuranceDashboard() {
               Broker ID: {userData.id.substring(0, 8)}
             </div>
           </div>
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-500 to-blue-700 font-medium text-white">
-            {userData.firstName?.charAt(0) ?? "U"}
-          </div>
+          {userData.image ? (
+            <Image
+              src={userData.image}
+              alt="User Avatar"
+              width={40}
+              height={40}
+              className="rounded-full"
+            />
+          ) : (
+            <span className="rounded-full">
+              {userData.firstName?.charAt(0) ?? "U"}
+            </span>
+          )}
         </div>
       </header>
 

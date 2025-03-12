@@ -198,6 +198,7 @@ import {
 import { ModeToggle } from "../mode-toggle";
 import { cn } from "@/lib/utils";
 import { UserButton } from "../auth/user-button";
+import { useLayoutConfig } from "@/contexts/LayoutConfigContext";
 
 const routes = [
   { label: "Overview", icon: BarChart3, href: "/dashboard" },
@@ -225,6 +226,12 @@ export function Sidebar() {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { setConfig } = useLayoutConfig();
+
+  useEffect(() => {
+    setConfig({ hideHeader: true, hideFooter: true });
+    return () => setConfig({ hideHeader: false, hideFooter: false });
+  }, [setConfig]);
 
   // Fetch session
   useEffect(() => {
@@ -281,7 +288,7 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-background border-b shadow-sm">
+      <div className="fixed left-0 right-0 top-0 z-50 flex items-center justify-between border-b bg-background p-4 shadow-sm md:hidden">
         <Link href="/dashboard" className="text-xl font-bold">
           Proton Medicare
         </Link>
@@ -290,7 +297,7 @@ export function Sidebar() {
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle menu"
-            className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700"
+            className="rounded-lg p-2 hover:bg-gray-200 dark:hover:bg-gray-700"
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -301,9 +308,9 @@ export function Sidebar() {
       <div
         ref={sidebarRef}
         className={cn(
-          "flex flex-col bg-muted h-full w-64 transition-transform duration-300 z-50",
-          isMobile ? "fixed top-0 left-0 pt-16 shadow-lg" : "sticky top-0",
-          isMobile && !isMobileMenuOpen ? "-translate-x-full" : "translate-x-0"
+          "z-50 flex h-full w-64 flex-col bg-muted transition-transform duration-300",
+          isMobile ? "fixed left-0 top-0 pt-16 shadow-lg" : "sticky top-0",
+          isMobile && !isMobileMenuOpen ? "-translate-x-full" : "translate-x-0",
         )}
       >
         {/* Logo (Desktop) */}
@@ -317,7 +324,7 @@ export function Sidebar() {
 
         {/* User Profile */}
         {session && (
-          <div className="p-4 border-b flex items-center gap-3">
+          <div className="flex items-center gap-3 border-b p-4">
             {session.user.image && (
               <Image
                 src={session.user.image}
@@ -337,7 +344,7 @@ export function Sidebar() {
         )}
 
         {/* Navigation */}
-        <nav className="px-3 py-2 flex-1">
+        <nav className="flex-1 px-3 py-2">
           <ul className="space-y-1">
             {routes.map(({ label, icon: Icon, href }) => (
               <li key={href}>
@@ -345,13 +352,13 @@ export function Sidebar() {
                   href={href}
                   onClick={() => isMobile && setIsMobileMenuOpen(false)}
                   className={cn(
-                    "flex items-center p-3 text-sm font-medium rounded-lg transition-colors",
+                    "flex items-center rounded-lg p-3 text-sm font-medium transition-colors",
                     pathname === href
                       ? "bg-teal-500 text-white"
-                      : "text-muted-foreground hover:bg-teal-500/10 hover:text-teal-500"
+                      : "text-muted-foreground hover:bg-teal-500/10 hover:text-teal-500",
                   )}
                 >
-                  <Icon className="h-5 w-5 mr-3" />
+                  <Icon className="mr-3 h-5 w-5" />
                   {label}
                 </Link>
               </li>
@@ -360,7 +367,7 @@ export function Sidebar() {
         </nav>
 
         {/* Logout & Theme Toggle */}
-        <div className="p-4 border-t flex items-center justify-between">
+        <div className="flex items-center justify-between border-t p-4">
           <UserButton />
           <ModeToggle />
         </div>
@@ -369,7 +376,7 @@ export function Sidebar() {
       {/* Mobile Overlay */}
       {isMobile && isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40"
+          className="fixed inset-0 z-40 bg-black/50"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
