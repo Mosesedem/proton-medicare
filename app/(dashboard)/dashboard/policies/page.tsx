@@ -39,20 +39,33 @@ export default async function HealthPlansPage() {
     hospitalListUrl: plan.hospitalListUrl,
     createdAt: plan.createdAt,
     idCardUrl: plan.idCardUrl,
+    amount: plan.amount ?? 0,
+    enrollmentId: plan.enrollmentId?.toString(),
+    plan: plan.enrollment.plan,
+
     providerPolicyId: plan.providerPolicyId,
   }));
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2 mt-14">
+      <div className="mt-14 flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Health Plans</h2>
-        <button className="px-4 py-2 text-white bg-teal-500 rounded-md align-middle hover:bg-teal-600">
+        <button className="rounded-md bg-teal-500 px-4 py-2 align-middle text-white hover:bg-teal-600">
           <Link href="/dashboard/enroll">
             <CirclePlus size={24} />
           </Link>
         </button>
       </div>
-      <DataTable columns={columns} data={formattedHealthPlans} />
+      <DataTable
+        columns={columns}
+        data={formattedHealthPlans}
+        user={{
+          firstName: healthPlans[0]?.User?.firstName || "",
+          lastName: healthPlans[0]?.User?.lastName || "",
+          email: healthPlans[0]?.User?.email || "",
+          phone: healthPlans[0]?.User?.phone || "",
+        }}
+      />
     </div>
   );
 }

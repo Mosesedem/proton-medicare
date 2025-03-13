@@ -18,7 +18,7 @@ import Image from "next/image";
 
 export type HealthPlan = {
   amount: number;
-  // id: string;
+  id: string;
   name: string;
   firstName: string;
   lastName: string;
