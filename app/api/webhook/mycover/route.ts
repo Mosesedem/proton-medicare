@@ -1,7 +1,7 @@
-// app/api/webhook/mycover/route.ts
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { NextRequest } from "next/server";
+import { string } from "zod";
 
 const prisma = new PrismaClient();
 
@@ -25,20 +25,29 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json(
         { success: false, message: "Invalid event or status" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const { meta, customer, id: policyId } = payload.data;
+
+    // Extract enrollment ID and user ID with fallback paths
     const enrollmentId = meta?.policy?.meta?.mca_payload?.meta?.enrollment_id;
     const userId = meta?.policy?.meta?.mca_payload?.meta?.user_id;
-    const planId = meta?.policy?.meta?.payload?.planId;
 
-    if (!enrollmentId || !userId || !planId) {
+    // Handle both webhook types for plan ID
+    let planId = meta?.policy?.meta?.payload?.planId; // Type 2 format
+
+    // If planId is not found, try the type 1 format (plan_id)
+    if (!planId && meta?.policy?.meta?.payload?.plan_id) {
+      planId = meta?.policy?.meta?.payload?.plan_id;
+    }
+
+    if (!enrollmentId || !userId) {
       await log("Missing required fields", { enrollmentId, userId, planId });
       return NextResponse.json(
         { success: false, message: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,41 +56,174 @@ export async function POST(request: NextRequest) {
         where: { enrollmentId, userId },
       });
 
+      // Enhanced getNestedValue with type conversion
+      const getNestedValue = (
+        obj: any,
+        path: string,
+        defaultValue: any = null,
+        converter?: (val: any) => any,
+      ) => {
+        const keys = path.split(".");
+        const value = keys.reduce(
+          (acc, key) =>
+            acc && acc[key] !== undefined ? acc[key] : defaultValue,
+          obj,
+        );
+        return converter && value !== defaultValue ? converter(value) : value;
+      };
+
+      // Safe data extraction
+      const startDate = getNestedValue(
+        payload,
+        "data.meta.policy.start_date",
+        payload.data.start_date,
+      );
+      const expiryDate = getNestedValue(
+        payload,
+        "data.policy_expiry_date",
+        payload.data.expiration_date,
+      );
+      const activationDate = getNestedValue(
+        payload,
+        "data.meta.policy.activation_date",
+        payload.data.activation_date,
+      );
+      const imageUrl = getNestedValue(
+        payload,
+        "data.meta.policy.meta.mca_payload.image_url",
+        getNestedValue(payload, "data.meta.policy.meta.id_image", null),
+      );
+      const hospitalListUrl = getNestedValue(
+        payload,
+        "data.meta.policy.meta.hospital_list_url",
+        null,
+      );
+      const providerPolicyId = getNestedValue(
+        payload,
+        "data.meta.policy.meta.provider_policy_id",
+        getNestedValue(payload, "data.meta.policy.meta.hmo_policy_id", null),
+        (val) => (val !== null ? parseInt(val, 10) : null),
+      );
+      const hmoPolicyId = getNestedValue(
+        payload,
+        "data.meta.policy.meta.hmo_policy_id",
+        getNestedValue(payload, "data.meta.policy.meta.hmo_policy_id", null),
+        (val) => (val !== null ? val.toString() : null),
+      );
+      const dobString = getNestedValue(
+        payload,
+        "data.meta.policy.dob",
+        getNestedValue(payload, "data.meta.policy.meta.payload.dob", null),
+      );
+
+      // Get address data with different possible paths
+      let address = getNestedValue(
+        payload,
+        "data.meta.policy.meta.payload.address",
+        null,
+      );
+
+      // Extract additional fields safely with type conversions
+      const groupId = getNestedValue(
+        payload,
+        "data.meta.policy.meta.payload.groupId",
+        null,
+        (val) => (val !== null ? parseInt(val, 10) : null),
+      );
+      const genderId = getNestedValue(
+        payload,
+        "data.meta.policy.meta.payload.genderId",
+        null,
+        (val) => (val !== null ? parseInt(val, 10) : null),
+      );
+      // const dataConsent = getNestedValue(
+      //   payload,
+      //   "data.meta.policy.meta.payload.dataConsent",
+      //   null,
+      //   (val) =>
+      //     val !== null && typeof val === "string" ? val === "true" : val,
+      // );
+      const idCardUrl = getNestedValue(
+        payload,
+        "data.meta.policy.meta.id_card_url",
+        null,
+      );
+      const paymentPlan = getNestedValue(
+        payload,
+        "data.meta.policy.meta.payment_plan",
+        null,
+        (val) => (val !== null ? parseInt(val, 10) : null),
+      );
+
+      // Convert numeric fields to appropriate types
+      const amount = parseFloat(payload.data.amount) || 0;
+      const profit = getNestedValue(
+        payload,
+        "data.meta.policy.profit",
+        null,
+        (val) => (val !== null ? parseFloat(val) : null),
+      );
+      const geniusPrice = getNestedValue(
+        payload,
+        "data.meta.policy.genius_price",
+        null,
+        (val) => (val !== null ? parseFloat(val) : null),
+      );
+      const marketPrice = getNestedValue(
+        payload,
+        "data.meta.policy.market_price",
+        null,
+        (val) => (val !== null ? parseFloat(val) : null),
+      );
+
       const commonData = {
         firstName: customer.first_name,
         lastName: customer.last_name,
         email: customer.email,
         phone: customer.phone,
-        planId: planId.toString(),
+        planId: planId ? planId.toString() : undefined,
         status: "active",
-        startDate: new Date(payload.data.meta.policy.start_date),
-        endDate: new Date(payload.data.policy_expiry_date),
-        expirationDate: new Date(payload.data.policy_expiry_date),
-        activationDate: new Date(payload.data.meta.policy.activation_date),
-        imagePath: meta.policy.meta.mca_payload.image_url,
-        hospitalListUrl: meta.policy.meta.hospital_list_url,
+        startDate: startDate ? new Date(startDate) : new Date(),
+        ...(expiryDate && { endDate: new Date(expiryDate) }),
+        ...(expiryDate && { expirationDate: new Date(expiryDate) }),
+        activationDate: activationDate ? new Date(activationDate) : new Date(),
+        imagePath: imageUrl,
+        hospitalListUrl,
         updatedAt: new Date(payload.data.updated_at),
 
-        // Additional fields from webhook
+        // Additional fields from webhook with proper type conversions
         myCoverPolicyId: policyId,
         appMode: payload.data.app_mode,
-        amount: payload.data.amount,
-        providerPolicyId: meta.policy.meta.provider_policy_id,
-        dob: new Date(meta.policy.meta.payload.dob),
-        address: meta.policy.meta.payload.address,
-        groupId: meta.policy.meta.payload.groupId,
-        genderId: meta.policy.meta.payload.genderId,
-        dataConsent: meta.policy.meta.payload.dataConsent,
-        idCardUrl: meta.policy.meta.id_card_url,
+        amount,
+        providerPolicyId,
+        hmoPolicyId: hmoPolicyId.toString(),
+        dob: dobString ? new Date(dobString) : null,
+        address,
+        groupId,
+        genderId,
+        // dataConsent,
+        idCardUrl,
         productId: payload.data.product_id,
-        paymentPlan: meta.policy.meta.payment_plan,
-        profit: meta.policy.profit,
-        buyerId: meta.policy.buyer_id,
-        distributorId: meta.policy.distributor_id,
-        providerId: meta.policy.provider_id,
-        purchaseId: meta.policy.purchase_id,
-        geniusPrice: meta.policy.genius_price,
-        marketPrice: meta.policy.market_price,
+        paymentPlan,
+        profit,
+        buyerId: getNestedValue(payload, "data.meta.policy.buyer_id", null),
+        distributorId: getNestedValue(
+          payload,
+          "data.meta.policy.distributor_id",
+          null,
+        ),
+        providerId: getNestedValue(
+          payload,
+          "data.meta.policy.provider_id",
+          null,
+        ),
+        purchaseId: getNestedValue(
+          payload,
+          "data.meta.policy.purchase_id",
+          null,
+        ),
+        geniusPrice,
+        marketPrice,
         myCoverReferenceId: payload.data.reference,
       };
 
@@ -116,19 +258,26 @@ export async function POST(request: NextRequest) {
 
         await log("Creating new health plan", { enrollmentId, userId });
 
+        const renewalDateStr = getNestedValue(
+          payload,
+          "data.meta.policy.renewal_date",
+          null,
+        );
+
         const newHealthPlan = await tx.healthPlan.create({
           data: {
             ...commonData,
-            userId,
-            enrollmentId,
             createdAt: new Date(payload.data.created_at),
-            renewalDate: payload.data.meta.policy.renewal_date
-              ? new Date(payload.data.meta.policy.renewal_date)
-              : null,
+            renewalDate: renewalDateStr ? new Date(renewalDateStr) : null,
+            User: {
+              connect: { id: userId },
+            },
+            enrollment: {
+              connect: { id: enrollmentId },
+            },
           },
         });
 
-        // console.log("Enrollment ID:", enrollmentId);
         await tx.enrollment.update({
           where: { id: enrollmentId },
           data: {
@@ -165,7 +314,7 @@ export async function POST(request: NextRequest) {
         message: "Failed to process webhook",
         error: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   } finally {
     await prisma.$disconnect();

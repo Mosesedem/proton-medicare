@@ -346,6 +346,7 @@ model HealthPlan {
   activationAttempts     Int       @default(0)
   lastActivationAttempt  DateTime?
   activationErrorMessage String?
+  hmoPolicyId            String?   @default("Pending")
 
   // New fields to match webhook response
   myCoverPolicyId  String? // id from webhook
