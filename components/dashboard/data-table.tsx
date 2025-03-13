@@ -13,6 +13,7 @@ import {
   VisibilityState,
   PaginationState,
   Row,
+  CellContext,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -31,13 +32,12 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import Preloader from "@/components/preloader";
-import { Search, Filter, MoreHorizontal } from "lucide-react";
-import { Download, ExternalLink } from "lucide-react";
+import { Search, Filter, ExternalLink } from "lucide-react";
+import { Download } from "lucide-react";
 import {
-  // Dialog,
-  // DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -51,8 +51,6 @@ import {
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
-  DropdownMenuItem,
-  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 
 interface DataTableProps<TData, TValue> {
@@ -73,9 +71,11 @@ export function DataTable<TData extends HealthPlan>({
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isHospitalOpen, setIsHospitalOpen] = useState(false);
+  const [isRenewalOpen, setIsRenewalOpen] = useState(false);
   const [globalFilter, setGlobalFilter] = useState("");
   const [selectedEnrollment, setSelectedEnrollment] =
     useState<HealthPlan | null>(null);
+  const [renewalDuration, setRenewalDuration] = useState("12");
   const [isLoading, setIsLoading] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -107,67 +107,69 @@ export function DataTable<TData extends HealthPlan>({
     event: React.MouseEvent<HTMLElement>,
   ) => {
     const target = event.target as HTMLElement;
-    // Ignore clicks originating from the action menu
-    if (target.closest(".action-menu")) return;
+    // Ignore clicks originating from the renew button
+    if (target.closest(".renew-button")) return;
     setSelectedEnrollment(enrollment);
     setIsDetailsOpen(true);
     setIsImageOpen(false); // Ensure other dialogs are closed
     setIsHospitalOpen(false);
+    setIsRenewalOpen(false);
   };
 
-  // Action menu handlers with event stopping
-  const handleActionClick = (
+  // Handle view hospital list from details dialog
+  const handleViewHospitalList = () => {
+    setIsDetailsOpen(false);
+    setIsHospitalOpen(true);
+  };
+
+  // Handle renew button click with event stopping
+  const handleRenewClick = (
     event: React.MouseEvent,
     enrollment: HealthPlan,
-    dialog: "image" | "hospital" | "details",
   ) => {
     event.stopPropagation(); // Stop the row click event from firing
     setSelectedEnrollment(enrollment);
-    setIsImageOpen(dialog === "image");
-    setIsHospitalOpen(dialog === "hospital");
-    setIsDetailsOpen(dialog === "details");
+    setIsRenewalOpen(true);
+  };
+
+  // Handle renewal submission
+  const handleRenewalSubmit = () => {
+    // Here you would handle the renewal logic
+    console.log(
+      `Renewing plan for ${selectedEnrollment?.name} for ${renewalDuration} months`,
+    );
+    // Close the renewal modal
+    setIsRenewalOpen(false);
+  };
+
+  // View ID Card from details dialog
+  const handleViewIdCard = () => {
+    setIsDetailsOpen(false);
+    setIsImageOpen(true);
   };
 
   const enhancedColumns = React.useMemo(() => {
-    const actionColumn = columns.find((col) => col.id === "actions");
-    if (actionColumn) {
-      const updatedColumn = {
-        ...actionColumn,
-        cell: ({ row }: { row: Row<HealthPlan> }) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="action-menu h-8 w-8 p-0"
-                onClick={(e) => e.stopPropagation()} // Stop propagation here too
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={(e) => handleActionClick(e, row.original, "image")}
-              >
-                View ID
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => handleActionClick(e, row.original, "hospital")}
-              >
-                View Hospital List
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => handleActionClick(e, row.original, "details")}
-              >
-                View More Details
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ),
-      };
-      return columns.map((col) => (col.id === "actions" ? updatedColumn : col));
-    }
-    return columns;
+    // Find and replace the actions column with a renew button column
+    return columns.map((col) => {
+      if (col.id === "actions") {
+        return {
+          ...col,
+          header: "Renew",
+          cell: (props: CellContext<TData, any>) => (
+            <Button
+              variant="outline"
+              className="renew-button h-8 w-full bg-teal-500 text-white hover:bg-teal-600"
+              onClick={(e) =>
+                handleRenewClick(e, props.row.original as HealthPlan)
+              }
+            >
+              Renew
+            </Button>
+          ),
+        };
+      }
+      return col;
+    });
   }, [columns]);
 
   const table = useReactTable({
@@ -235,39 +237,13 @@ export function DataTable<TData extends HealthPlan>({
               <h3 className="font-medium text-teal-700">
                 {row.getValue("firstName")} {row.getValue("lastName")}
               </h3>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="action-menu h-8 w-8 p-0"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuItem
-                    onClick={(e) => handleActionClick(e, row.original, "image")}
-                  >
-                    View ID
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) =>
-                      handleActionClick(e, row.original, "hospital")
-                    }
-                  >
-                    View Hospital List
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) =>
-                      handleActionClick(e, row.original, "details")
-                    }
-                  >
-                    View More Details
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button
+                variant="outline"
+                className="renew-button h-8 bg-teal-500 text-white hover:bg-teal-600"
+                onClick={(e) => handleRenewClick(e, row.original)}
+              >
+                Renew
+              </Button>
             </div>
             <div className="grid grid-cols-2 gap-y-2 text-sm">
               <span className="text-gray-500">Email:</span>
@@ -299,7 +275,6 @@ export function DataTable<TData extends HealthPlan>({
         <div className="p-8 text-center text-gray-500">No results found.</div>
       )}
     </div>
-    // <p>Mobile view</p>
   );
 
   const pageCount = table.getPageCount();
@@ -467,6 +442,7 @@ export function DataTable<TData extends HealthPlan>({
 
       {selectedEnrollment && (
         <>
+          {/* ID Card Dialog */}
           <Dialog open={isImageOpen} onOpenChange={setIsImageOpen}>
             <DialogContent className="sm:max-w-md md:max-w-lg">
               <DialogHeader>
@@ -484,8 +460,6 @@ export function DataTable<TData extends HealthPlan>({
                     className="object-contain"
                     height={600}
                     width={800}
-                    // fill
-                    // sizes="(max-width: 768px) 100vw, 700px"
                   />
                 </div>
                 <Button
@@ -494,7 +468,6 @@ export function DataTable<TData extends HealthPlan>({
                 >
                   <a href={selectedEnrollment.idCardUrl ?? "#"} download>
                     <Download className="h-4 w-4" />
-
                     <span>Download ID Card</span>
                   </a>
                 </Button>
@@ -617,12 +590,25 @@ export function DataTable<TData extends HealthPlan>({
                       />
                     </div>
                   </div>
-                  <div className="mt-3 flex justify-end">
-                    <Button size="sm" variant="outline" asChild>
+                  <div className="mt-3 flex flex-wrap gap-2 sm:justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 sm:flex-none"
+                      onClick={handleViewIdCard}
+                    >
+                      View Full Size
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      asChild
+                      className="flex-1 sm:flex-none"
+                    >
                       <a
                         href={selectedEnrollment.idCardUrl ?? "#"}
                         download
-                        className="flex items-center gap-2"
+                        className="flex items-center justify-center gap-2"
                       >
                         <Download className="h-4 w-4" />
                         <span>Download</span>
@@ -630,7 +616,127 @@ export function DataTable<TData extends HealthPlan>({
                     </Button>
                   </div>
                 </div>
+
+                {/* Added View Hospital List button */}
+                <div className="border-t pt-4">
+                  <Button
+                    onClick={handleViewHospitalList}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    View Hospital List
+                  </Button>
+                </div>
               </div>
+
+              <DialogFooter className="gap-2 sm:justify-between">
+                <Button
+                  onClick={() => setIsDetailsOpen(false)}
+                  variant="outline"
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsDetailsOpen(false);
+                    setIsRenewalOpen(true);
+                  }}
+                  className="bg-teal-500 text-white hover:bg-teal-600"
+                >
+                  Renew Plan
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* New Renewal Modal */}
+          <Dialog open={isRenewalOpen} onOpenChange={setIsRenewalOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-semibold">
+                  Renew Health Plan
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <p className="text-lg font-medium">
+                    {selectedEnrollment.name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Policy ID: {selectedEnrollment.providerPolicyId}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Current Plan Ends
+                    </p>
+                    <p className="font-medium">
+                      {formatDate(selectedEnrollment.endDate)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <Badge
+                      className={`${
+                        selectedEnrollment.expired
+                          ? "bg-red-100 text-red-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
+                    >
+                      {selectedEnrollment.expired ? "Expired" : "Active"}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2">
+                  <p className="text-sm font-medium">Select Renewal Duration</p>
+                  <Select
+                    value={renewalDuration}
+                    onValueChange={setRenewalDuration}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Month</SelectItem>
+                      <SelectItem value="3">3 Months</SelectItem>
+                      <SelectItem value="6">6 Months</SelectItem>
+                      <SelectItem value="12">12 Months</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="rounded-md bg-muted p-3">
+                  <p className="text-sm">
+                    By renewing this plan, coverage will be extended from{" "}
+                    <span className="font-medium">
+                      {formatDate(selectedEnrollment.endDate)}
+                    </span>{" "}
+                    for{" "}
+                    <span className="font-medium">
+                      {renewalDuration}{" "}
+                      {parseInt(renewalDuration) === 1 ? "month" : "months"}
+                    </span>
+                    .
+                  </p>
+                </div>
+              </div>
+              <DialogFooter className="gap-2 sm:justify-between">
+                <Button
+                  onClick={() => setIsRenewalOpen(false)}
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleRenewalSubmit}
+                  className="bg-teal-500 text-white hover:bg-teal-600"
+                >
+                  Confirm Renewal
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         </>
