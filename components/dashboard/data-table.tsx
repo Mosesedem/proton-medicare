@@ -1,19 +1,20 @@
 "use client";
 
+import { Card } from "@/components/ui/card";
+
 import {
-  ColumnDef,
+  type ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
   getPaginationRowModel,
   getSortedRowModel,
-  SortingState,
+  type SortingState,
   getFilteredRowModel,
-  ColumnFiltersState,
-  VisibilityState,
-  PaginationState,
-  Row,
-  CellContext,
+  type ColumnFiltersState,
+  type VisibilityState,
+  type PaginationState,
+  type CellContext,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -26,7 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import React, { useState, useEffect } from "react";
-import { HealthPlan } from "./columns";
+import type { HealthPlan } from "./columns";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -52,15 +53,32 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AlertCircle, CreditCard, LoaderCircle, RefreshCw } from "lucide-react";
+import { payWithEtegram } from "etegram-pay";
+import { toast } from "sonner";
+// import { Script } from "next/script";
+
+declare global {
+  interface Window {
+    PaystackPop: any;
+  }
+}
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  user: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  };
 }
 
 export function DataTable<TData extends HealthPlan>({
   columns,
   data,
+  user,
 }: DataTableProps<TData, any>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -72,6 +90,10 @@ export function DataTable<TData extends HealthPlan>({
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isHospitalOpen, setIsHospitalOpen] = useState(false);
   const [isRenewalOpen, setIsRenewalOpen] = useState(false);
+  const [showPaymentChoice, setShowPaymentChoice] = useState(false);
+  const [renewalPrice, setRenewalPrice] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [paystackReady, setPaystackReady] = useState(false);
   const [globalFilter, setGlobalFilter] = useState("");
   const [selectedEnrollment, setSelectedEnrollment] =
     useState<HealthPlan | null>(null);
@@ -82,6 +104,44 @@ export function DataTable<TData extends HealthPlan>({
     pageSize: 10,
   });
   const [isMobile, setIsMobile] = useState(false);
+
+  // Calculate renewal price immediately when enrollment or duration changes
+  useEffect(() => {
+    if (selectedEnrollment) {
+      calculateRenewalPrice(selectedEnrollment, renewalDuration);
+    }
+  }, [selectedEnrollment, renewalDuration]);
+
+  // Improved price calculation function
+  const calculateRenewalPrice = (enrollment: HealthPlan, duration: string) => {
+    if (!enrollment) return 0;
+
+    // Base price from the enrollment
+    const basePrice = enrollment.amount || 0;
+
+    // Apply discount for longer durations
+    let multiplier = 1;
+    switch (duration) {
+      case "1":
+        multiplier = 1;
+        break;
+      case "3":
+        multiplier = 2.85; // 5% discount for 3 months
+        break;
+      case "6":
+        multiplier = 5.7; // 5% discount for 6 months
+        break;
+      case "12":
+        multiplier = 11.4; // 5% discount for 12 months
+        break;
+      default:
+        multiplier = Number.parseInt(duration);
+    }
+
+    const calculatedPrice = Math.round(basePrice * multiplier);
+    setRenewalPrice(calculatedPrice);
+    return calculatedPrice;
+  };
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -121,6 +181,144 @@ export function DataTable<TData extends HealthPlan>({
     setIsDetailsOpen(false);
     setIsHospitalOpen(true);
   };
+
+  const handlePaymentChoice = async (type: "subscription" | "onetime") => {
+    if (!selectedEnrollment || !user) {
+      toast.error("Missing enrollment or user information");
+      return;
+    }
+
+    if (type === "subscription" && !paystackReady) {
+      toast.error("Payment system is not ready. Please refresh and try again.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Ensure the price is calculated correctly
+      const currentPrice = calculateRenewalPrice(
+        selectedEnrollment,
+        renewalDuration,
+      );
+
+      // Prepare payment data
+      const paymentData = {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        price: currentPrice, // Use the calculated price directly
+        phone: user.phone,
+        plan: selectedEnrollment.plan,
+        enrollment_id: selectedEnrollment.enrollmentId,
+        paymentType: type,
+        isRenewal: true,
+        renewalDuration: renewalDuration,
+      };
+
+      console.log("Payment data:", paymentData); // Debugging
+
+      // Initiate payment on backend
+      const response = await fetch("/api/initiate-renewal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(paymentData),
+      });
+
+      const paymentResult = await response.json();
+
+      if (!paymentResult.success) {
+        throw new Error(paymentResult.message || "Payment initiation failed");
+      }
+
+      if (type === "subscription") {
+        if (!window.PaystackPop) {
+          throw new Error("PaystackPop is not loaded");
+        }
+
+        const handler = window.PaystackPop.setup({
+          key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
+          email: user.email,
+          plan: paymentResult.plan_code,
+          ref: paymentResult.reference,
+          amount: currentPrice * 100, // Ensure amount is in kobo for Paystack
+          metadata: {
+            ...paymentResult.metadata,
+            pendingPaymentId: paymentResult.metadata?.pendingPaymentId,
+          },
+          callback: (response: any) => {
+            if (response.status === "success") {
+              // Verify payment server-side
+              fetch(`/api/verify-payment?reference=${response.reference}`)
+                .then((res) => res.json())
+                .then((result) => {
+                  if (result.success) {
+                    toast.success("Renewal subscription successful!");
+                    window.location.reload();
+                  } else {
+                    toast.error("Payment verification failed");
+                  }
+                })
+                .catch((err) => {
+                  toast.error("Verification error: " + err.message);
+                  window.location.reload();
+                });
+            }
+          },
+          onClose: () => {
+            toast.info("Payment window closed");
+            setLoading(false);
+          },
+        });
+        handler.openIframe();
+      } else {
+        // One-time payment via Etegram
+        await payWithEtegram({
+          projectID:
+            process.env.NEXT_PUBLIC_ETEGRAM_PROJECT_ID ||
+            "67c4467f0a013a02393e6142",
+          publicKey:
+            process.env.NEXT_PUBLIC_ETEGRAM_PROJECT_PUBLIC_KEY ||
+            "pk_live-5b7363cc53914ddda99f45757052c36f",
+          phone: user.phone,
+          firstname: user.firstName,
+          lastname: user.lastName,
+          email: user.email,
+          amount: currentPrice.toString(), // Convert to string for Etegram
+          reference: paymentResult.reference,
+        });
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      toast.error(errorMessage);
+      console.error("Payment error:", error);
+    } finally {
+      if (type !== "subscription") setLoading(false);
+      setIsRenewalOpen(true); // Keep dialog open in case of error
+    }
+  };
+
+  // Add this to your component to load Paystack
+  useEffect(() => {
+    // Check if Paystack script is already loaded
+    if (!document.getElementById("paystack-script")) {
+      const script = document.createElement("script");
+      script.id = "paystack-script";
+      script.src = "https://js.paystack.co/v1/inline.js";
+      script.async = true;
+      script.onload = () => {
+        console.log("Paystack script loaded");
+        setPaystackReady(true);
+      };
+      script.onerror = (e) => {
+        console.error("Paystack script failed to load:", e);
+        toast.error("Failed to load payment system");
+      };
+      document.body.appendChild(script);
+    } else {
+      setPaystackReady(true);
+    }
+  }, []);
 
   // Handle renew button click with event stopping
   const handleRenewClick = (
@@ -207,7 +405,7 @@ export function DataTable<TData extends HealthPlan>({
   });
 
   const handleRowsPerPageChange = (value: string) => {
-    const newPageSize = parseInt(value);
+    const newPageSize = Number.parseInt(value);
     setPagination(() => ({
       pageIndex: 0,
       pageSize: newPageSize,
@@ -649,7 +847,6 @@ export function DataTable<TData extends HealthPlan>({
             </DialogContent>
           </Dialog>
 
-          {/* New Renewal Modal */}
           <Dialog open={isRenewalOpen} onOpenChange={setIsRenewalOpen}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
@@ -694,7 +891,10 @@ export function DataTable<TData extends HealthPlan>({
                   <p className="text-sm font-medium">Select Renewal Duration</p>
                   <Select
                     value={renewalDuration}
-                    onValueChange={setRenewalDuration}
+                    onValueChange={(value) => {
+                      setRenewalDuration(value);
+                      calculateRenewalPrice(selectedEnrollment, value);
+                    }}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select duration" />
@@ -717,25 +917,90 @@ export function DataTable<TData extends HealthPlan>({
                     for{" "}
                     <span className="font-medium">
                       {renewalDuration}{" "}
-                      {parseInt(renewalDuration) === 1 ? "month" : "months"}
+                      {Number.parseInt(renewalDuration) === 1
+                        ? "month"
+                        : "months"}
                     </span>
                     .
                   </p>
                 </div>
+
+                {/* Payment options integrated directly in the dialog */}
+                <div className="mt-4 grid grid-cols-1 gap-4">
+                  <p className="text-sm font-medium">Choose Payment Option</p>
+
+                  <div className="flex flex-col space-y-4">
+                    <Card
+                      className="cursor-pointer p-3 transition-shadow hover:shadow-lg"
+                      onClick={() => handlePaymentChoice("subscription")}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="rounded-full bg-primary/10 p-2">
+                          <RefreshCw className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-sm font-semibold">
+                            Subscription Based
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            Auto-renew at the end of each period
+                          </p>
+                          <div className="mt-1 text-base font-bold text-primary">
+                            ₦ {renewalPrice.toLocaleString("en-NG")}/
+                            {renewalDuration === "1"
+                              ? "mo"
+                              : renewalDuration === "3"
+                                ? "quarter"
+                                : renewalDuration === "6"
+                                  ? "half-year"
+                                  : "year"}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+
+                    <Card
+                      className="cursor-pointer p-3 transition-shadow hover:shadow-lg"
+                      onClick={() => handlePaymentChoice("onetime")}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="rounded-full bg-primary/10 p-2">
+                          <CreditCard className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-sm font-semibold">
+                            One-Time Payment
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            Single payment for {renewalDuration}{" "}
+                            {Number.parseInt(renewalDuration) === 1
+                              ? "month"
+                              : "months"}
+                          </p>
+                          <div className="mt-1 text-base font-bold text-primary">
+                            ₦ {renewalPrice.toLocaleString("en-NG")}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  </div>
+                </div>
               </div>
               <DialogFooter className="gap-2 sm:justify-between">
                 <Button
-                  onClick={() => setIsRenewalOpen(false)}
+                  onClick={() => {
+                    setIsRenewalOpen(false);
+                  }}
                   variant="outline"
                 >
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleRenewalSubmit}
-                  className="bg-teal-500 text-white hover:bg-teal-600"
-                >
-                  Confirm Renewal
-                </Button>
+                {loading ? (
+                  <Button disabled className="bg-teal-500 text-white">
+                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </Button>
+                ) : null}
               </DialogFooter>
             </DialogContent>
           </Dialog>

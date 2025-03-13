@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import Image from "next/image";
 
 export type HealthPlan = {
+  amount: number;
   // id: string;
   name: string;
   firstName: string;
@@ -26,6 +27,8 @@ export type HealthPlan = {
   startDate: Date;
   endDate: Date;
   expired: boolean;
+  enrollmentId: string;
+  plan: string;
   imagePath: string;
   hospitalListUrl: string;
   createdAt: Date;
