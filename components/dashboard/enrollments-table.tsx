@@ -265,7 +265,7 @@ export function DataTable({
                 {row.getValue("firstName")} {row.getValue("lastName")}
               </h3>
               {getPlanActivationStatus(row.original.id).canActivate &&
-                row.original.status === "active" &&
+                row.original.status.toUpperCase() === "ACTIVE" &&
                 row.original.paymentStatus === "paid" && (
                   <Button
                     variant="ghost"
@@ -286,9 +286,9 @@ export function DataTable({
               </span>
               <span className="text-gray-500">Status:</span>
               <Badge
-                className={`${row.getValue("status") === "Active" ? "bg-teal-100 text-teal-800" : "bg-gray-100 text-gray-800"} w-fit`}
+                className={`${row.getValue("status") === "active" ? "bg-teal-100 text-teal-800" : "bg-gray-100 text-gray-800"} w-fit`}
               >
-                {row.getValue("status")}
+                {(row.getValue("status") as string).toUpperCase()}
               </Badge>
               <span className="text-gray-500">Amount:</span>
               <span className="font-medium">
