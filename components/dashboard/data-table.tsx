@@ -404,7 +404,7 @@ export function DataTable<TData extends HealthPlan>({
       if (col.id === "actions") {
         return {
           ...col,
-          header: "Renew",
+          header: "Actions",
           cell: (props: CellContext<TData, any>) => (
             <Button
               variant="outline"
