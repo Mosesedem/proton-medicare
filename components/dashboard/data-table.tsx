@@ -57,9 +57,15 @@ import { CreditCard, LoaderCircle, RefreshCw } from "lucide-react";
 import { payWithEtegram } from "etegram-pay";
 import { toast } from "sonner";
 
+// declare global {
+//   interface Window {
+//     PaystackPop: any;
+//   }
+// }
 declare global {
   interface Window {
     PaystackPop: any;
+    EtegramPay: any;
   }
 }
 
@@ -186,9 +192,126 @@ export function DataTable<TData extends HealthPlan>({
     setIsHospitalOpen(true);
   };
 
+  // const handlePaymentChoice = async (type: "subscription" | "onetime") => {
+  //   if (!selectedEnrollment || !user) {
+  //     toast.error("Missing enrollment or user information");
+  //     return;
+  //   }
+
+  //   if (type === "subscription" && !paystackReady) {
+  //     toast.error("Payment system not ready. Please refresh and try again.");
+  //     return;
+  //   }
+
+  //   setLoading(true);
+  //   try {
+  //     const currentPrice = calculateRenewalPrice(
+  //       selectedEnrollment,
+  //       renewalDuration,
+  //     );
+
+  //     const paymentData: PaymentData = {
+  //       firstName: user.firstName,
+  //       lastName: user.lastName,
+  //       // amount: currentPrice,
+  //       email: user.email || "{user.firstName}@{user.lastName}.com",
+  //       // phone: user.phone,
+  //       price: currentPrice,
+  //       plan: selectedEnrollment.productId,
+  //       enrollment_id: selectedEnrollment.enrollmentId,
+  //       paymentType: type,
+  //     };
+
+  //     const paymentResult = await initiatePayment(paymentData);
+  //     if (!paymentResult.success) {
+  //       throw new Error(paymentResult.message || "Payment initiation failed");
+  //     }
+
+  //     if (type === "subscription") {
+  //       const handler = window.PaystackPop.setup({
+  //         key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
+  //         email: user.email || "{user.firstName}@{user.lastName}.com",
+  //         plan: paymentResult.plan_code,
+  //         ref: paymentResult.reference,
+  //         metadata: { ...paymentResult.metadata },
+  //         amount: currentPrice * 100,
+  //         callback: (response: any) => {
+  //           if (response.status === "success") {
+  //             toast.success("Subscription successful!");
+  //             window.location.href = "/dashboard/enrollments";
+  //           }
+  //         },
+  //         onClose: () => {
+  //           toast.info("Payment window closed");
+  //           setLoading(false);
+  //         },
+  //       });
+  //       handler.openIframe();
+  //     } else {
+  //       await payWithEtegram({
+  //         projectID:
+  //           process.env.ETEGRAM_PROJECT_ID || "67c4467f0a013a02393e6142",
+  //         publicKey:
+  //           process.env.ETEGRAM_PROJECT_PUBLIC_KEY ||
+  //           "pk_live-5b7363cc53914ddda99f45757052c36f",
+  //         phone: user.phone,
+  //         firstname: user.firstName,
+  //         lastname: user.lastName,
+  //         email: user.email || "{user.firstName}@{user.lastName}.com",
+  //         amount: currentPrice.toString(),
+  //         reference: paymentResult.reference,
+  //       });
+  //     }
+  //   } catch (error) {
+  //     toast.error(error instanceof Error ? error.message : "Payment failed");
+  //   } finally {
+  //     if (type !== "subscription") setLoading(false);
+  //     setIsRenewalOpen(true);
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   if (!document.getElementById("paystack-script")) {
+  //     const script = document.createElement("script");
+  //     script.id = "paystack-script";
+  //     script.src = "https://js.paystack.co/v1/inline.js";
+  //     script.async = true;
+  //     script.onload = () => {
+  //       console.log("Paystack script loaded");
+  //       setPaystackReady(true);
+  //     };
+  //     script.onerror = (e) => {
+  //       console.error("Paystack script failed to load:", e);
+  //       toast.error("Failed to load payment system");
+  //     };
+  //     document.body.appendChild(script);
+  //   } else {
+  //     setPaystackReady(true);
+  //   }
+  // }, []);
+
+  useEffect(() => {
+    // Cleanup function when component unmounts
+    return () => {
+      // Clean up Paystack
+      if (
+        window.PaystackPop &&
+        typeof window.PaystackPop.cleanup === "function"
+      ) {
+        window.PaystackPop.cleanup();
+      }
+
+      // Remove the container if it exists
+      const container = document.getElementById("paystack-container");
+      if (container) {
+        document.body.removeChild(container);
+      }
+    };
+  }, []);
+
   const handlePaymentChoice = async (type: "subscription" | "onetime") => {
     if (!selectedEnrollment || !user) {
-      toast.error("Missing enrollment or user information");
+      toast.error("Enrollment not found");
       return;
     }
 
@@ -203,13 +326,10 @@ export function DataTable<TData extends HealthPlan>({
         selectedEnrollment,
         renewalDuration,
       );
-
       const paymentData: PaymentData = {
         firstName: user.firstName,
         lastName: user.lastName,
-        // amount: currentPrice,
         email: user.email || "{user.firstName}@{user.lastName}.com",
-        // phone: user.phone,
         price: currentPrice,
         plan: selectedEnrollment.productId,
         enrollment_id: selectedEnrollment.enrollmentId,
@@ -228,7 +348,6 @@ export function DataTable<TData extends HealthPlan>({
           plan: paymentResult.plan_code,
           ref: paymentResult.reference,
           metadata: { ...paymentResult.metadata },
-          amount: currentPrice * 100,
           callback: (response: any) => {
             if (response.status === "success") {
               toast.success("Subscription successful!");
@@ -260,48 +379,9 @@ export function DataTable<TData extends HealthPlan>({
       toast.error(error instanceof Error ? error.message : "Payment failed");
     } finally {
       if (type !== "subscription") setLoading(false);
-      setIsRenewalOpen(true);
+      setIsRenewalOpen(false);
     }
   };
-
-  useEffect(() => {
-    if (!document.getElementById("paystack-script")) {
-      const script = document.createElement("script");
-      script.id = "paystack-script";
-      script.src = "https://js.paystack.co/v1/inline.js";
-      script.async = true;
-      script.onload = () => {
-        console.log("Paystack script loaded");
-        setPaystackReady(true);
-      };
-      script.onerror = (e) => {
-        console.error("Paystack script failed to load:", e);
-        toast.error("Failed to load payment system");
-      };
-      document.body.appendChild(script);
-    } else {
-      setPaystackReady(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Cleanup function when component unmounts
-    return () => {
-      // Clean up Paystack
-      if (
-        window.PaystackPop &&
-        typeof window.PaystackPop.cleanup === "function"
-      ) {
-        window.PaystackPop.cleanup();
-      }
-
-      // Remove the container if it exists
-      const container = document.getElementById("paystack-container");
-      if (container) {
-        document.body.removeChild(container);
-      }
-    };
-  }, []);
 
   const handleRenewClick = (
     event: React.MouseEvent,
@@ -457,14 +537,14 @@ export function DataTable<TData extends HealthPlan>({
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-start justify-between gap-4 py-4 sm:flex-row sm:items-center">
-        {/* <div className="mb-12">
+        <div className="mb-12">
           <Script
             src="https://js.paystack.co/v1/inline.js"
             strategy="afterInteractive"
             onLoad={() => setPaystackReady(true)}
             onError={() => toast.error("Failed to load payment system")}
           />
-        </div> */}
+        </div>
         <div className="relative w-full max-w-sm flex-1 sm:w-auto">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
           <Input
