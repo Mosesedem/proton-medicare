@@ -535,6 +535,8 @@ model PendingPayment {
   planCode     String
   type         String
   amount       Float
+  duration     String   @default("1")
+  isRenewal    Boolean  @default(false)
   status       String   @default("pending")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

@@ -157,9 +157,9 @@ interface PlanName {
   plan: string;
   healthPlan: {
     id: string;
-    providerPolicyId: string | number;
+    hmoPolicyId: string | number;
   };
-  providerPolicyId: string | number;
+  hmoPolicyId: string | number;
 }
 
 async function getPlanNames(userId: string) {
@@ -170,7 +170,7 @@ async function getPlanNames(userId: string) {
       status: true,
       amount: true,
       endDate: true,
-      providerPolicyId: true,
+      hmoPolicyId: true,
       // plan: true,
 
       Plan: { select: { name: true } },
@@ -192,9 +192,9 @@ async function getPlanNames(userId: string) {
     plan: enrollment.enrollment?.plan || "",
     healthPlan: {
       id: enrollment.id || "",
-      providerPolicyId: enrollment.providerPolicyId || "",
+      hmoPolicyId: enrollment.hmoPolicyId || "",
     },
-    providerPolicyId: enrollment.providerPolicyId || "",
+    hmoPolicyId: enrollment.hmoPolicyId || "",
   }));
 }
 
@@ -222,7 +222,7 @@ async function getHealthPlans(userId: string) {
 
 interface RenewalPlan {
   id: string;
-  providerPolicyId: string | number;
+  hmoPolicyId: string | number;
   endDate: Date;
   planName: string;
   amount: number;
@@ -237,7 +237,7 @@ async function getUpcomingRenewals(userId: string) {
     },
     select: {
       id: true,
-      providerPolicyId: true,
+      hmoPolicyId: true,
       endDate: true,
       enrollment: { select: { plan: true } },
       amount: true,
@@ -251,7 +251,7 @@ async function getUpcomingRenewals(userId: string) {
     const matchingPlan = plans.find((p) => p.id === dbRenewal.id);
     return {
       id: dbRenewal.id,
-      providerPolicyId: dbRenewal.providerPolicyId,
+      hmoPolicyId: dbRenewal.hmoPolicyId,
       endDate: dbRenewal.endDate,
       // Handle both cases - Plan as an array or Plan as an object
       planName: Array.isArray(dbRenewal.enrollment)
@@ -474,7 +474,7 @@ export default async function NigerianInsuranceDashboard() {
                     {planNames.slice(0, 5).map((plan) => (
                       <tr key={plan.id} className="border-b last:border-0">
                         <td className="py-4 text-sm font-medium">
-                          {plan.healthPlan.providerPolicyId}
+                          {plan.healthPlan.hmoPolicyId}
                         </td>
                         <td className="py-4 text-sm">{plan.plan}</td>
                         <td className="py-4 text-sm">Health Insurance</td>
@@ -552,13 +552,13 @@ export default async function NigerianInsuranceDashboard() {
               <div className="space-y-4">
                 {upcomingRenewals.slice(0, 3).map((renewal) => (
                   <div
-                    key={String(renewal.providerPolicyId)}
+                    key={String(renewal.hmoPolicyId)}
                     className="flex flex-col justify-between rounded-xl border border-blue-100 bg-gradient-to-r from-white to-blue-50/50 p-4 md:flex-row md:items-center"
                   >
                     <div className="mb-3 md:mb-0">
                       <div className="flex items-center gap-2">
                         <div className="rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-primary">
-                          {renewal.providerPolicyId}
+                          {renewal.hmoPolicyId}
                         </div>
                         <p className="text-sm text-gray-500">
                           {new Date(renewal.endDate).toLocaleDateString(

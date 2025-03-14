@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-
+import { plans, durations } from "@/lib/constants";
 import {
   type ColumnDef,
   flexRender,
@@ -16,6 +16,7 @@ import {
   type PaginationState,
   type CellContext,
 } from "@tanstack/react-table";
+import Script from "next/script";
 import {
   Table,
   TableBody,
@@ -33,8 +34,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import Preloader from "@/components/preloader";
-import { Search, Filter, ExternalLink } from "lucide-react";
-import { Download } from "lucide-react";
+import { Search, Filter, ExternalLink, Download } from "lucide-react";
 import {
   DialogHeader,
   DialogTitle,
@@ -53,10 +53,9 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AlertCircle, CreditCard, LoaderCircle, RefreshCw } from "lucide-react";
+import { CreditCard, LoaderCircle, RefreshCw } from "lucide-react";
 import { payWithEtegram } from "etegram-pay";
 import { toast } from "sonner";
-// import { Script } from "next/script";
 
 declare global {
   interface Window {
@@ -74,6 +73,24 @@ interface DataTableProps<TData, TValue> {
     phone: string;
   };
 }
+export interface PaymentData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  price: number;
+  plan: string;
+  enrollment_id: string;
+  paymentType: "subscription" | "onetime";
+}
+
+export const initiatePayment = async (data: PaymentData) => {
+  const response = await fetch("/api/initiate-renewal", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+};
 
 export function DataTable<TData extends HealthPlan>({
   columns,
@@ -90,7 +107,6 @@ export function DataTable<TData extends HealthPlan>({
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isHospitalOpen, setIsHospitalOpen] = useState(false);
   const [isRenewalOpen, setIsRenewalOpen] = useState(false);
-  const [showPaymentChoice, setShowPaymentChoice] = useState(false);
   const [renewalPrice, setRenewalPrice] = useState(0);
   const [loading, setLoading] = useState(false);
   const [paystackReady, setPaystackReady] = useState(false);
@@ -105,40 +121,31 @@ export function DataTable<TData extends HealthPlan>({
   });
   const [isMobile, setIsMobile] = useState(false);
 
-  // Calculate renewal price immediately when enrollment or duration changes
   useEffect(() => {
     if (selectedEnrollment) {
       calculateRenewalPrice(selectedEnrollment, renewalDuration);
     }
   }, [selectedEnrollment, renewalDuration]);
 
-  // Improved price calculation function
   const calculateRenewalPrice = (enrollment: HealthPlan, duration: string) => {
     if (!enrollment) return 0;
 
-    // Base price from the enrollment
-    const basePrice = enrollment.amount || 0;
-
-    // Apply discount for longer durations
-    let multiplier = 1;
-    switch (duration) {
-      case "1":
-        multiplier = 1;
-        break;
-      case "3":
-        multiplier = 2.85; // 5% discount for 3 months
-        break;
-      case "6":
-        multiplier = 5.7; // 5% discount for 6 months
-        break;
-      case "12":
-        multiplier = 11.4; // 5% discount for 12 months
-        break;
-      default:
-        multiplier = Number.parseInt(duration);
+    const plan = plans.find((p) => p.id === enrollment.productId);
+    if (!plan) {
+      console.error(`Plan with ID ${enrollment.plan} not found`);
+      return 0;
     }
 
+    const basePrice = plan.basePrice || 0;
+    const durationObj = durations.find((d) => d.value === duration);
+    const months = Number.parseInt(duration);
+    const discount = durationObj ? durationObj.discount : 0;
+
+    const multiplier = months * (1 - discount);
     const calculatedPrice = Math.round(basePrice * multiplier);
+    console.log(
+      `Calculated Price for ${plan.name}, ${duration} months: ${calculatedPrice}`,
+    );
     setRenewalPrice(calculatedPrice);
     return calculatedPrice;
   };
@@ -161,22 +168,19 @@ export function DataTable<TData extends HealthPlan>({
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  // Handle row click for details, ensuring it doesn't interfere with action menu
   const handleRowClick = (
     enrollment: HealthPlan,
     event: React.MouseEvent<HTMLElement>,
   ) => {
     const target = event.target as HTMLElement;
-    // Ignore clicks originating from the renew button
     if (target.closest(".renew-button")) return;
     setSelectedEnrollment(enrollment);
     setIsDetailsOpen(true);
-    setIsImageOpen(false); // Ensure other dialogs are closed
+    setIsImageOpen(false);
     setIsHospitalOpen(false);
     setIsRenewalOpen(false);
   };
 
-  // Handle view hospital list from details dialog
   const handleViewHospitalList = () => {
     setIsDetailsOpen(false);
     setIsHospitalOpen(true);
@@ -189,79 +193,46 @@ export function DataTable<TData extends HealthPlan>({
     }
 
     if (type === "subscription" && !paystackReady) {
-      toast.error("Payment system is not ready. Please refresh and try again.");
+      toast.error("Payment system not ready. Please refresh and try again.");
       return;
     }
 
     setLoading(true);
     try {
-      // Ensure the price is calculated correctly
       const currentPrice = calculateRenewalPrice(
         selectedEnrollment,
         renewalDuration,
       );
 
-      // Prepare payment data
-      const paymentData = {
+      const paymentData: PaymentData = {
         firstName: user.firstName,
         lastName: user.lastName,
-        email: user.email,
-        price: currentPrice, // Use the calculated price directly
-        phone: user.phone,
-        plan: selectedEnrollment.plan,
+        // amount: currentPrice,
+        email: user.email || "{user.firstName}@{user.lastName}.com",
+        // phone: user.phone,
+        price: currentPrice,
+        plan: selectedEnrollment.productId,
         enrollment_id: selectedEnrollment.enrollmentId,
         paymentType: type,
-        isRenewal: true,
-        renewalDuration: renewalDuration,
       };
 
-      console.log("Payment data:", paymentData); // Debugging
-
-      // Initiate payment on backend
-      const response = await fetch("/api/initiate-renewal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(paymentData),
-      });
-
-      const paymentResult = await response.json();
-
+      const paymentResult = await initiatePayment(paymentData);
       if (!paymentResult.success) {
         throw new Error(paymentResult.message || "Payment initiation failed");
       }
 
       if (type === "subscription") {
-        if (!window.PaystackPop) {
-          throw new Error("PaystackPop is not loaded");
-        }
-
         const handler = window.PaystackPop.setup({
           key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
-          email: user.email,
+          email: user.email || "{user.firstName}@{user.lastName}.com",
           plan: paymentResult.plan_code,
           ref: paymentResult.reference,
-          amount: currentPrice * 100, // Ensure amount is in kobo for Paystack
-          metadata: {
-            ...paymentResult.metadata,
-            pendingPaymentId: paymentResult.metadata?.pendingPaymentId,
-          },
+          metadata: { ...paymentResult.metadata },
+          amount: currentPrice * 100,
           callback: (response: any) => {
             if (response.status === "success") {
-              // Verify payment server-side
-              fetch(`/api/verify-payment?reference=${response.reference}`)
-                .then((res) => res.json())
-                .then((result) => {
-                  if (result.success) {
-                    toast.success("Renewal subscription successful!");
-                    window.location.reload();
-                  } else {
-                    toast.error("Payment verification failed");
-                  }
-                })
-                .catch((err) => {
-                  toast.error("Verification error: " + err.message);
-                  window.location.reload();
-                });
+              toast.success("Subscription successful!");
+              window.location.href = "/dashboard/enrollments";
             }
           },
           onClose: () => {
@@ -271,36 +242,29 @@ export function DataTable<TData extends HealthPlan>({
         });
         handler.openIframe();
       } else {
-        // One-time payment via Etegram
         await payWithEtegram({
           projectID:
-            process.env.NEXT_PUBLIC_ETEGRAM_PROJECT_ID ||
-            "67c4467f0a013a02393e6142",
+            process.env.ETEGRAM_PROJECT_ID || "67c4467f0a013a02393e6142",
           publicKey:
-            process.env.NEXT_PUBLIC_ETEGRAM_PROJECT_PUBLIC_KEY ||
+            process.env.ETEGRAM_PROJECT_PUBLIC_KEY ||
             "pk_live-5b7363cc53914ddda99f45757052c36f",
           phone: user.phone,
           firstname: user.firstName,
           lastname: user.lastName,
-          email: user.email,
-          amount: currentPrice.toString(), // Convert to string for Etegram
+          email: user.email || "{user.firstName}@{user.lastName}.com",
+          amount: currentPrice.toString(),
           reference: paymentResult.reference,
         });
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "An unknown error occurred";
-      toast.error(errorMessage);
-      console.error("Payment error:", error);
+      toast.error(error instanceof Error ? error.message : "Payment failed");
     } finally {
       if (type !== "subscription") setLoading(false);
-      setIsRenewalOpen(true); // Keep dialog open in case of error
+      setIsRenewalOpen(true);
     }
   };
 
-  // Add this to your component to load Paystack
   useEffect(() => {
-    // Check if Paystack script is already loaded
     if (!document.getElementById("paystack-script")) {
       const script = document.createElement("script");
       script.id = "paystack-script";
@@ -320,34 +284,40 @@ export function DataTable<TData extends HealthPlan>({
     }
   }, []);
 
-  // Handle renew button click with event stopping
+  useEffect(() => {
+    // Cleanup function when component unmounts
+    return () => {
+      // Clean up Paystack
+      if (
+        window.PaystackPop &&
+        typeof window.PaystackPop.cleanup === "function"
+      ) {
+        window.PaystackPop.cleanup();
+      }
+
+      // Remove the container if it exists
+      const container = document.getElementById("paystack-container");
+      if (container) {
+        document.body.removeChild(container);
+      }
+    };
+  }, []);
+
   const handleRenewClick = (
     event: React.MouseEvent,
     enrollment: HealthPlan,
   ) => {
-    event.stopPropagation(); // Stop the row click event from firing
+    event.stopPropagation();
     setSelectedEnrollment(enrollment);
     setIsRenewalOpen(true);
   };
 
-  // Handle renewal submission
-  const handleRenewalSubmit = () => {
-    // Here you would handle the renewal logic
-    console.log(
-      `Renewing plan for ${selectedEnrollment?.name} for ${renewalDuration} months`,
-    );
-    // Close the renewal modal
-    setIsRenewalOpen(false);
-  };
-
-  // View ID Card from details dialog
   const handleViewIdCard = () => {
     setIsDetailsOpen(false);
     setIsImageOpen(true);
   };
 
   const enhancedColumns = React.useMemo(() => {
-    // Find and replace the actions column with a renew button column
     return columns.map((col) => {
       if (col.id === "actions") {
         return {
@@ -450,7 +420,7 @@ export function DataTable<TData extends HealthPlan>({
               </span>
               <span className="text-gray-500">HMO ID:</span>
               <span className="font-medium">
-                {row.getValue("providerPolicyId") || "N/A"}
+                {row.getValue("hmoPolicyId") || "N/A"}
               </span>
               <span className="text-gray-500">Start Date:</span>
               <span className="font-medium">
@@ -487,6 +457,14 @@ export function DataTable<TData extends HealthPlan>({
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-start justify-between gap-4 py-4 sm:flex-row sm:items-center">
+        {/* <div className="mb-12">
+          <Script
+            src="https://js.paystack.co/v1/inline.js"
+            strategy="afterInteractive"
+            onLoad={() => setPaystackReady(true)}
+            onError={() => toast.error("Failed to load payment system")}
+          />
+        </div> */}
         <div className="relative w-full max-w-sm flex-1 sm:w-auto">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
           <Input
@@ -640,7 +618,6 @@ export function DataTable<TData extends HealthPlan>({
 
       {selectedEnrollment && (
         <>
-          {/* ID Card Dialog */}
           <Dialog open={isImageOpen} onOpenChange={setIsImageOpen}>
             <DialogContent className="sm:max-w-md md:max-w-lg">
               <DialogHeader>
@@ -673,7 +650,6 @@ export function DataTable<TData extends HealthPlan>({
             </DialogContent>
           </Dialog>
 
-          {/* Hospital List Dialog */}
           <Dialog open={isHospitalOpen} onOpenChange={setIsHospitalOpen}>
             <DialogContent className="max-w-[90vw] overflow-hidden p-0 sm:max-w-2xl md:max-w-4xl lg:max-w-5xl">
               <DialogHeader className="border-b p-4 sm:p-6">
@@ -704,7 +680,6 @@ export function DataTable<TData extends HealthPlan>({
             </DialogContent>
           </Dialog>
 
-          {/* Health Plan Details Dialog */}
           <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
             <DialogContent className="sm:max-w-md md:max-w-lg">
               <DialogHeader>
@@ -717,7 +692,7 @@ export function DataTable<TData extends HealthPlan>({
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">ID</p>
                     <p className="font-medium">
-                      {selectedEnrollment.providerPolicyId}
+                      {selectedEnrollment.hmoPolicyId}
                     </p>
                   </div>
                   <div className="space-y-1">
@@ -815,7 +790,6 @@ export function DataTable<TData extends HealthPlan>({
                   </div>
                 </div>
 
-                {/* Added View Hospital List button */}
                 <div className="border-t pt-4">
                   <Button
                     onClick={handleViewHospitalList}
@@ -847,7 +821,19 @@ export function DataTable<TData extends HealthPlan>({
             </DialogContent>
           </Dialog>
 
-          <Dialog open={isRenewalOpen} onOpenChange={setIsRenewalOpen}>
+          <Dialog
+            open={isRenewalOpen}
+            onOpenChange={(open) => {
+              if (
+                !open &&
+                loading &&
+                window.document.querySelector(".paystack-checkout")
+              ) {
+                return;
+              }
+              setIsRenewalOpen(open);
+            }}
+          >
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle className="text-xl font-semibold">
@@ -860,7 +846,7 @@ export function DataTable<TData extends HealthPlan>({
                     {selectedEnrollment.name}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Policy ID: {selectedEnrollment.providerPolicyId}
+                    Policy ID: {selectedEnrollment.hmoPolicyId}
                   </p>
                 </div>
 
@@ -925,10 +911,8 @@ export function DataTable<TData extends HealthPlan>({
                   </p>
                 </div>
 
-                {/* Payment options integrated directly in the dialog */}
                 <div className="mt-4 grid grid-cols-1 gap-4">
                   <p className="text-sm font-medium">Choose Payment Option</p>
-
                   <div className="flex flex-col space-y-4">
                     <Card
                       className="cursor-pointer p-3 transition-shadow hover:shadow-lg"
@@ -988,19 +972,17 @@ export function DataTable<TData extends HealthPlan>({
               </div>
               <DialogFooter className="gap-2 sm:justify-between">
                 <Button
-                  onClick={() => {
-                    setIsRenewalOpen(false);
-                  }}
+                  onClick={() => setIsRenewalOpen(false)}
                   variant="outline"
                 >
                   Cancel
                 </Button>
-                {loading ? (
+                {loading && (
                   <Button disabled className="bg-teal-500 text-white">
                     <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                     Processing...
                   </Button>
-                ) : null}
+                )}
               </DialogFooter>
             </DialogContent>
           </Dialog>

@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import Image from "next/image";
 
 export type HealthPlan = {
+  duration: number;
   amount: number;
   id: string;
   name: string;
@@ -32,8 +33,9 @@ export type HealthPlan = {
   imagePath: string;
   hospitalListUrl: string;
   createdAt: Date;
-  providerPolicyId: number | null;
+  hmoPolicyId: string | null;
   idCardUrl: string | null;
+  productId: string;
 };
 
 export const columns: ColumnDef<HealthPlan>[] = [
@@ -62,7 +64,7 @@ export const columns: ColumnDef<HealthPlan>[] = [
     ),
   },
   { accessorKey: "email", header: "Email" },
-  { accessorKey: "providerPolicyId", header: "HMO ID" },
+  { accessorKey: "hmoPolicyId", header: "HMO ID" },
   {
     accessorKey: "startDate",
     header: "Start Date",
@@ -142,7 +144,7 @@ const CellActions = ({ row }: { row: any }) => {
         <DialogContent>
           <h3 className="text-lg font-bold">Health Plan Details</h3>
           <div className="space-y-2">
-            <p>ID: {plan.providerPolicyId}</p>
+            <p>ID: {plan.hmoPolicyId}</p>
             <p>Name: {plan.name}</p>
             <p>Email: {plan.email}</p>
             <p>Phone: {plan.phone}</p>

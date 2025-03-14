@@ -42,8 +42,10 @@ export default async function HealthPlansPage() {
     amount: plan.amount ?? 0,
     enrollmentId: plan.enrollmentId?.toString(),
     plan: plan.enrollment.plan,
+    duration: Number(plan.enrollment.duration),
+    productId: plan.productId ?? "",
 
-    providerPolicyId: plan.providerPolicyId,
+    hmoPolicyId: plan.hmoPolicyId,
   }));
 
   return (
