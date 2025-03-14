@@ -318,6 +318,7 @@ model User {
   PendingPayment         PendingPayment[]
   HealthPlan             HealthPlan[]
   Plan                   Plan[]
+  PendingRenewal         PendingRenewal[]
 
   @@map("users")
 }
@@ -369,9 +370,10 @@ model HealthPlan {
   geniusPrice      Float?
   marketPrice      Float?
 
-  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
-  User       User       @relation(fields: [userId], references: [id])
-  Plan       Plan[]
+  enrollment     Enrollment       @relation(fields: [enrollmentId], references: [id])
+  User           User             @relation(fields: [userId], references: [id])
+  Plan           Plan[]
+  PendingRenewal PendingRenewal[]
 
   @@index([enrollmentId])
   @@index([userId])
@@ -521,6 +523,7 @@ model Enrollment {
   HealthPlan            HealthPlan[]
   transactions          Transaction[]
   Plan                  Plan[]
+  PendingRenewal        PendingRenewal[]
 
   @@map("enrollments")
 }
@@ -549,6 +552,24 @@ model PendingPayment {
   @@index([userId])
   @@index([enrollmentId])
   @@index([reference])
+}
+
+model PendingRenewal {
+  id           String     @id @default(uuid())
+  userId       String
+  enrollmentId Int
+  healthPlanId String
+  paymentId    Int
+  policyId     String // MyCover policy ID
+  expiryDate   DateTime // Policy expiration date
+  duration     Int // Renewal duration in months
+  status       String     @default("pending") // pending, processed, failed
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  healthPlan   HealthPlan @relation(fields: [healthPlanId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
+  payment      Payment    @relation(fields: [paymentId], references: [id])
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
 }
 
 model Payment {
@@ -602,6 +623,7 @@ model Payment {
   user           User             @relation(fields: [userId], references: [id])
   enrollment     Enrollment       @relation(fields: [enrollmentId], references: [id])
   PendingPayment PendingPayment[] @relation("PendingToPayment")
+  PendingRenewal PendingRenewal[]
 
   @@index([userId])
   @@index([enrollmentId])

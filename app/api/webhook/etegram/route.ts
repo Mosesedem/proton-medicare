@@ -67,6 +67,7 @@ interface EtegramWebhookPayload {
   channel: string;
   sessionId: string;
   id: string;
+  metadata?: any; // Added for consistency with Paystack
 }
 
 export async function POST(request: Request) {
@@ -83,10 +84,7 @@ export async function POST(request: Request) {
 
     if (!rawBody) {
       await logToDebugEndpoint({ message: "Empty request body" }, "error");
-      return NextResponse.json(
-        { success: false, message: "Empty request body" },
-        { status: 400 }
-      );
+      throw new Error("Empty request body");
     }
 
     // Parse payload
@@ -102,52 +100,33 @@ export async function POST(request: Request) {
           error: errorMessage,
           rawBody: rawBody.substring(0, 500),
         },
-        "parse_error"
+        "parse_error",
       );
-
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid JSON payload",
-          error: errorMessage,
-          rawBody: rawBody.substring(0, 500),
-        },
-        { status: 400 }
-      );
+      throw new Error("Invalid JSON payload");
     }
 
     // Typescript non-null assertion for payload after parsing
     const safePayload = payload!;
 
-    // Validate payload structure
-    if (!safePayload.reference || !safePayload.amount || !safePayload.status) {
+    // Skip non-success events
+    if (safePayload.status !== "successful") {
       await logToDebugEndpoint(
         {
-          message: "Missing required payload fields",
-          missingFields: {
-            reference: !safePayload.reference,
-            amount: !safePayload.amount,
-            status: !safePayload.status,
-          },
+          message: `Event ${safePayload.status} received, skipping processing`,
         },
-        "validation_error"
+        "event_skipped",
       );
-
       return NextResponse.json(
         {
-          success: false,
-          message: "Missing required payload fields",
-          missingFields: {
-            reference: !safePayload.reference,
-            amount: !safePayload.amount,
-            status: !safePayload.status,
-          },
+          success: true,
+          message: `Event ${safePayload.status} not processed`,
         },
-        { status: 400 }
+        { status: 200 },
       );
     }
 
-    const { reference, amount, status, email, phone, fullname } = safePayload;
+    const { reference, amount, status, email, phone, fullname, updatedAt } =
+      safePayload;
 
     // Find the pending payment
     const pendingPayment = await prisma.pendingPayment.findUnique({
@@ -157,125 +136,192 @@ export async function POST(request: Request) {
 
     if (!pendingPayment) {
       await logToDebugEndpoint(
-        {
-          message: "No pending payment found",
-          reference: reference,
-        },
-        "pending_payment_not_found"
+        { message: `No pending payment found for reference: ${reference}` },
+        "pending_payment_not_found",
       );
-
-      return NextResponse.json(
-        { success: false, message: "Pending payment not found" },
-        { status: 404 }
-      );
+      throw new Error(`No pending payment found for reference: ${reference}`);
     }
 
-    // Calculate commission (10% of amount, capped at 10,000)
+    const paymentStatus = status === "successful" ? "completed" : "failed";
+    const transactionStatus =
+      paymentStatus === "completed" ? "Success" : "Failed";
     const commission = Math.min(amount * 0.1, 10000);
 
-    // Map Etegram status to our system
-    const paymentStatus =
-      status === "successful"
-        ? "completed"
-        : status === "failed"
-        ? "failed"
-        : "pending";
-    const transactionStatus =
-      paymentStatus === "completed"
-        ? "Success"
-        : paymentStatus === "failed"
-        ? "Failed"
-        : "Pending";
+    // Handle metadata (assuming it might be included in payload)
+    let metadata = {};
+    if (typeof safePayload.metadata === "string")
+      metadata = JSON.parse(safePayload.metadata);
+    else if (safePayload.metadata && typeof safePayload.metadata === "object")
+      metadata = safePayload.metadata;
 
     // Process within a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Check for duplicate payment
       const existingPayment = await tx.payment.findUnique({
         where: { reference },
       });
       if (existingPayment) {
         await logToDebugEndpoint(
-          {
-            message: "Payment already processed",
-            reference: reference,
-          },
-          "duplicate_payment"
+          { message: `Payment already processed for reference: ${reference}` },
+          "duplicate_payment",
         );
-
         return { payment: existingPayment, transaction: null };
       }
 
-      // Create Payment record
       const payment = await tx.payment.create({
         data: {
           userId: pendingPayment.userId,
           enrollmentId: pendingPayment.enrollmentId,
-          amount: amount,
-          reference: reference,
+          amount,
+          reference,
           provider: "etegram",
           status: paymentStatus,
-          planCode: pendingPayment.planCode, // Kept as metadata
-          createdAt: new Date(safePayload.updatedAt),
+          planCode:
+            pendingPayment.planCode || (metadata as any).plan_code || "",
+          createdAt: new Date(updatedAt),
         },
       });
 
-      // Update PendingPayment
       await tx.pendingPayment.update({
         where: { id: pendingPayment.id },
-        data: {
-          paymentid: payment.id,
-          status: paymentStatus,
-        },
+        data: { paymentid: payment.id, status: paymentStatus },
       });
 
-      // Safely split fullname
-      const nameParts = fullname.trim().split(/\s+/);
-      const firstName = nameParts[0] || pendingPayment.enrollment.firstName;
-      const lastName =
-        nameParts.slice(1).join(" ") ||
-        pendingPayment.enrollment.lastName ||
-        "";
-
-      // Update Enrollment
       await tx.enrollment.update({
         where: { id: pendingPayment.enrollmentId },
         data: {
           paymentStatus: paymentStatus === "completed" ? "paid" : "pending",
-          lastPaymentDate: new Date(safePayload.updatedAt),
-          reference: reference,
-          amount: amount,
+          lastPaymentDate: new Date(updatedAt),
+          reference,
+          amount,
           status:
             paymentStatus === "completed"
               ? "active"
               : pendingPayment.enrollment.status,
-          // phone: phone || pendingPayment.enrollment.phone,
-          // email: email || pendingPayment.email,
-          // firstName: firstName,
-          // lastName: lastName,
         },
       });
 
-      // Create Transaction record (no planId)
-      const transaction = await tx.transaction.create({
+      let transaction;
+      if (pendingPayment.isRenewal) {
+        const healthPlan = await tx.healthPlan.findFirst({
+          where: { enrollmentId: pendingPayment.enrollmentId },
+          select: { id: true, myCoverPolicyId: true, endDate: true },
+        });
+
+        if (!healthPlan?.myCoverPolicyId) {
+          throw new Error("No MyCover policy ID found for renewal");
+        }
+
+        const expiryDate = healthPlan.endDate || new Date();
+        const today = new Date();
+        const daysUntilExpiry = Math.ceil(
+          (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+        );
+        await logToDebugEndpoint(
+          { daysUntilExpiry, reference },
+          "renewal_expiry_check",
+        );
+
+        if (daysUntilExpiry <= 3 && daysUntilExpiry >= 0) {
+          const renewalPayload = {
+            policy_id: healthPlan.myCoverPolicyId,
+            payment_plan: parseInt(pendingPayment.duration),
+          };
+
+          const renewalResponse = await fetch(
+            "https://api.mycover.ai/v1/products/mcg/renew-mcg-health",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${process.env.MYCOVER_API_KEY}`,
+              },
+              body: JSON.stringify(renewalPayload),
+            },
+          );
+
+          if (!renewalResponse.ok) {
+            throw new Error(
+              `Renewal API failed: ${await renewalResponse.text()}`,
+            );
+          }
+
+          const renewalData = await renewalResponse.json();
+          await logToDebugEndpoint(
+            { renewalData, reference },
+            "renewal_success",
+          );
+
+          const newExpiryDate = renewalData.data?.new_expiry_date
+            ? new Date(renewalData.data.new_expiry_date)
+            : null;
+          if (newExpiryDate) {
+            await tx.healthPlan.update({
+              where: { id: healthPlan.id },
+              data: { endDate: newExpiryDate },
+            });
+          }
+
+          const phpEndpoint =
+            process.env.PHP_LOG_ENDPOINT ||
+            "https://v2.protonmedicare.com/debug/log.php";
+          await fetch(phpEndpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              apiResponse: renewalData,
+              userDetails: {
+                userId: pendingPayment.userId,
+                email: email || pendingPayment.enrollment.email,
+                firstName:
+                  fullname.split(/\s+/)[0] ||
+                  pendingPayment.enrollment.firstName,
+                lastName:
+                  fullname.split(/\s+/).slice(1).join(" ") ||
+                  pendingPayment.enrollment.lastName,
+                reference,
+              },
+              timestamp: new Date().toISOString(),
+            }),
+          });
+        } else {
+          await tx.pendingRenewal.create({
+            data: {
+              userId: pendingPayment.userId,
+              enrollmentId: pendingPayment.enrollmentId,
+              healthPlanId: healthPlan.id,
+              paymentId: payment.id,
+              policyId: healthPlan.myCoverPolicyId,
+              expiryDate,
+              duration: parseInt(pendingPayment.duration),
+              status: "pending",
+            },
+          });
+          await logToDebugEndpoint(
+            { policyId: healthPlan.myCoverPolicyId },
+            "renewal_queued",
+          );
+        }
+      }
+
+      transaction = await tx.transaction.create({
         data: {
-          amount: amount,
+          amount,
           status: transactionStatus,
-          type: "OneTime",
-          commission: commission,
+          type: (metadata as any).is_subscription ? "Renewal" : "OneTime",
+          commission,
           userId: pendingPayment.userId,
+          planId: pendingPayment.planCode,
           enrollmentId: pendingPayment.enrollmentId,
-          planId: pendingPayment.planCode, // Optional: stored as metadata
         },
       });
 
-      // Log successful transaction
       await logToDebugEndpoint(
         {
-          message: "Transaction processed successfully",
           paymentId: payment.id,
           transactionId: transaction.id,
+          reference,
         },
-        "transaction_success"
+        "transaction_success",
       );
 
       return { payment, transaction };
@@ -288,27 +334,28 @@ export async function POST(request: Request) {
         paymentId: result.payment.id,
         transactionId: result.transaction?.id || null,
         status: paymentStatus,
-        reference: reference,
+        reference,
       },
     });
   } catch (error) {
-    // Log the error
+    const errorMessage = error instanceof Error ? error.message : String(error);
     await logToDebugEndpoint(
       {
         message: "Webhook processing error",
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
         rawBody: rawBody
           ? rawBody.substring(0, 200) + "..."
           : "No body received",
       },
-      "processing_error"
+      "processing_error",
     );
 
-    // Attempt to update pending payment if reference is available
-    if (payload && payload.reference) {
+    const safeReference =
+      payload?.reference || rawBody.match(/"reference":"([^"]+)"/)?.[1];
+    if (safeReference) {
       try {
         await prisma.pendingPayment.update({
-          where: { reference: payload.reference },
+          where: { reference: safeReference },
           data: { status: "failed" },
         });
       } catch (updateError) {
@@ -320,7 +367,7 @@ export async function POST(request: Request) {
                 ? updateError.message
                 : String(updateError),
           },
-          "update_error"
+          "update_error",
         );
       }
     }
@@ -329,12 +376,12 @@ export async function POST(request: Request) {
       {
         success: false,
         message: "Webhook processing error",
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
         rawBody: rawBody
           ? rawBody.substring(0, 200) + "..."
           : "No body received",
       },
-      { status: 500 }
+      { status: 500 },
     );
   } finally {
     await prisma.$disconnect();

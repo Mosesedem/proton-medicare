@@ -79,8 +79,15 @@ export async function POST(request: Request) {
 
     // Step 3: Validate request data
     console.log("🔍 Validating request data...");
-    const { firstName, lastName, price, plan, enrollment_id, paymentType } =
-      body;
+    const {
+      firstName,
+      lastName,
+      price,
+      plan,
+      planName,
+      enrollment_id,
+      paymentType,
+    } = body;
 
     // Check for required fields
     const missingFields = [];
@@ -88,6 +95,7 @@ export async function POST(request: Request) {
     if (!lastName) missingFields.push("lastName");
     if (!price) missingFields.push("price");
     if (!plan) missingFields.push("plan");
+    if (!planName) missingFields.push("planName");
     if (!enrollment_id) missingFields.push("enrollment_id");
     if (!paymentType) missingFields.push("paymentType");
 
@@ -253,6 +261,7 @@ export async function POST(request: Request) {
           status: "pending",
           planCode: "",
           isRenewal: true,
+          duration: enrollment.duration,
         };
 
         safeLog("📋 Pending payment data:", paymentData);
@@ -279,7 +288,7 @@ export async function POST(request: Request) {
       let planResponse;
       try {
         const planData = {
-          name: `${plan} Plan`,
+          name: `${planName} Plan`,
           amount: price * 100,
           interval: interval,
         };

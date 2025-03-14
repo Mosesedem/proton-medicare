@@ -85,6 +85,7 @@ export interface PaymentData {
   email: string;
   price: number;
   plan: string;
+  planName?: string;
   enrollment_id: string;
   paymentType: "subscription" | "onetime";
 }
@@ -332,6 +333,7 @@ export function DataTable<TData extends HealthPlan>({
         email: user.email || "{user.firstName}@{user.lastName}.com",
         price: currentPrice,
         plan: selectedEnrollment.productId,
+        planName: selectedEnrollment.plan,
         enrollment_id: selectedEnrollment.enrollmentId,
         paymentType: type,
       };
@@ -350,8 +352,8 @@ export function DataTable<TData extends HealthPlan>({
           metadata: { ...paymentResult.metadata },
           callback: (response: any) => {
             if (response.status === "success") {
-              toast.success("Subscription successful!");
-              window.location.href = "/dashboard/enrollments";
+              toast.success("Renewal successful!");
+              window.location.href = "/dashboard/policies";
             }
           },
           onClose: () => {
