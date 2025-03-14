@@ -150,6 +150,7 @@ export default function EnrollmentForm() {
   const [paystackReady, setPaystackReady] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userData, setUserData] = useState<{ email: string } | null>(null);
 
   const {
     formData,
@@ -161,9 +162,8 @@ export default function EnrollmentForm() {
   } = useEnrollmentForm();
   const [enrollmentId, setEnrollmentId] = useState<number | null>(null);
   const { setConfig } = useLayoutConfig();
-  const [userEmail, setUserEmail] = useState("");
 
-  // Check authentication status
+  // Check authentication status and fetch user data
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -175,16 +175,21 @@ export default function EnrollmentForm() {
           throw new Error("Invalid token");
         })
         .then((data) => {
-          setUserEmail(data.email || "");
+          setUserData({ email: data.email });
           setIsAuthenticated(true);
+          // Update formData with user's email if no form email exists
+          setFormData((prev) => ({
+            ...prev,
+            email: prev.email || data.email,
+          }));
         })
         .catch(() => {
           localStorage.removeItem("token");
           setIsAuthenticated(false);
-          setUserEmail("");
+          setUserData(null);
         });
     }
-  }, []);
+  }, [setFormData]);
 
   useEffect(() => {
     setConfig({ hideHeader: false, hideFooter: true });
@@ -290,38 +295,48 @@ export default function EnrollmentForm() {
 
     setLoading(true);
     try {
-      if (!isAuthenticated) {
-        const emailCheck = await checkEmail(formData.email);
-        setModalType(emailCheck.exists ? "login" : "register");
-        setShowModal(true);
-        return;
+      const enrollmentFormData = new FormData();
+      const emailToUse = isAuthenticated ? userData?.email : formData.email;
+
+      if (!emailToUse) {
+        throw new Error("Email is required");
       }
 
-      const enrollmentFormData = new FormData();
+      // Use userData.email if authenticated, otherwise use formData.email
       Object.entries(formData).forEach(([key, value]) => {
-        if (value instanceof File) {
+        if (key === "email" && isAuthenticated) {
+          enrollmentFormData.append(key, userData!.email);
+        } else if (value instanceof File) {
           enrollmentFormData.append(key, value);
         } else if (value != null) {
           enrollmentFormData.append(key, String(value));
         }
       });
 
-      const enrollmentResult = await createEnrollment(enrollmentFormData);
+      if (isAuthenticated) {
+        // If authenticated, proceed directly with enrollment
+        const enrollmentResult = await createEnrollment(enrollmentFormData);
 
-      if (!enrollmentResult.success) {
-        if (enrollmentResult.message === "Authentication required") {
+        if (!enrollmentResult.success) {
+          throw new Error(
+            enrollmentResult.message || "Failed to create enrollment",
+          );
+        }
+
+        setEnrollmentId(enrollmentResult.enrollment_id);
+        setShowPaymentChoice(true);
+        toast.success("Enrollment created successfully");
+      } else {
+        // If not authenticated, check email and prompt login/register
+        const emailCheck = await checkEmail(formData.email);
+        if (emailCheck.exists) {
           setModalType("login");
           setShowModal(true);
-          return;
+        } else {
+          setModalType("register");
+          setShowModal(true);
         }
-        throw new Error(
-          enrollmentResult.message || "Failed to create enrollment",
-        );
       }
-
-      setEnrollmentId(enrollmentResult.enrollment_id);
-      setShowPaymentChoice(true);
-      toast.success("Enrollment created successfully");
     } catch (error) {
       toast.error("Failed to process enrollment. Please try again.");
       console.error("Submit error:", error);
@@ -352,6 +367,7 @@ export default function EnrollmentForm() {
 
       if (authResult.success) {
         setIsAuthenticated(true);
+        setUserData({ email: formData.email });
         setShowModal(false);
 
         // Proceed with enrollment after successful auth
@@ -396,7 +412,7 @@ export default function EnrollmentForm() {
       const paymentData: PaymentData = {
         firstName: formData.firstName,
         lastName: formData.lastName,
-        email: userEmail || formData.email,
+        email: userData?.email || formData.email,
         price: price,
         plan: formData.plan,
         enrollment_id: enrollmentId,
@@ -411,7 +427,7 @@ export default function EnrollmentForm() {
       if (type === "subscription") {
         const handler = window.PaystackPop.setup({
           key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
-          email: userEmail || formData.email,
+          email: userData?.email || formData.email,
           plan: paymentResult.plan_code,
           ref: paymentResult.reference,
           metadata: { ...paymentResult.metadata },
@@ -437,7 +453,7 @@ export default function EnrollmentForm() {
           phone: formData.phone,
           firstname: formData.firstName,
           lastname: formData.lastName,
-          email: userEmail || formData.email,
+          email: userData?.email || formData.email,
           amount: price.toString(),
           reference: paymentResult.reference,
         });
@@ -476,16 +492,16 @@ export default function EnrollmentForm() {
               <CardTitle className="text-2xl font-semibold">
                 Enrollment Form
               </CardTitle>
-              <CardDescription className="text-emerald-600">
+              <CardDescription className="text-teal-500">
                 Step {currentStep} of 3
               </CardDescription>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleReset}
-                className="ml-auto h-12 px-6 text-teal-600 hover:text-teal-500"
+                className="ml-auto h-12 px-6 text-teal-500 hover:text-teal-600"
               >
-                <RefreshCw className="h-4 w-4 text-teal-600" />
+                <RefreshCw className="h-4 w-4 text-teal-500" />
                 Reset Form
               </Button>
             </CardHeader>
@@ -526,7 +542,7 @@ export default function EnrollmentForm() {
                 type={currentStep === 3 ? "submit" : "button"}
                 onClick={currentStep < 3 ? handleNextStep : undefined}
                 disabled={loading}
-                className="ml-auto h-12 bg-teal-600 px-6 hover:bg-emerald-600"
+                className="ml-auto h-12 bg-teal-500 px-6 hover:bg-teal-600"
               >
                 {loading ? (
                   <div className="flex items-center">
@@ -591,7 +607,7 @@ export default function EnrollmentForm() {
               <Button
                 onClick={handleModalSubmit}
                 disabled={loading}
-                className="h-12 w-full bg-teal-600 hover:bg-emerald-600"
+                className="h-12 w-full bg-teal-500 hover:bg-teal-600"
               >
                 {loading
                   ? "Processing..."
@@ -613,7 +629,7 @@ export default function EnrollmentForm() {
 
         <Toaster position="top-center" richColors closeButton />
       </div>
-      <div className="fixed bottom-0 right-0 top-0 z-10 hidden w-1/2 md:block">
+      <div className="fixed bottom-0 right-0 top-0 z-10 hidden w-1/3 md:block">
         <Slideshow />
       </div>
     </div>
